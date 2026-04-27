@@ -6,6 +6,55 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  MANAGER
+  STAFF
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  PARTIALLY_PAID
+  CANCELLED
+}
+
+enum ApprovalRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum SurveyAppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
+
 model User {
   id        String   @id @default(cuid())
   name      String?
@@ -17,9 +66,45 @@ model User {
   Session           Session[]
   Membership        Membership[]
   AuthenticatedSession AuthenticatedSession[]
+  createdOrganizations Organization[] @relation("OrganizationCreator")
+  createdProjects      Project[]      @relation("ProjectCreator")
+  createdTransactions  Transaction[]  @relation("TransactionCreator")
+  uploadedAttachments  Attachment[]   @relation("AttachmentUploader")
+  preference           UserPreference?
+  createdQuotations    Quotation[]    @relation("QuotationCreator")
+  createdSurveyAppointments SurveyAppointment[] @relation("SurveyAppointmentCreator")
+  assignedSurveyAppointments SurveyAppointment[] @relation("SurveyAppointmentAssignee")
+  budgetRevisions    BudgetRevision[] @relation("BudgetRevisionActor")
+  auditLogs          AuditLog[]       @relation("AuditLogActor")
+  requestedApprovalRequests ApprovalRequest[] @relation("ApprovalRequester")
+  approvedApprovalRequests  ApprovalRequest[] @relation("ApprovalApprover")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Organization {
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  description   String?
+  createdById   String
+  createdBy     User           @relation("OrganizationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  memberships   Membership[]
+  customers     Customer[]
+  projects      Project[]
+  transactions  Transaction[]
+  attachments   Attachment[]
+  preferences   UserPreference[] @relation("LastOrganization")
+  quotations    Quotation[]
+  surveyAppointments SurveyAppointment[]
+  budgetCategories BudgetCategory[]
+  projectBudgetLines ProjectBudgetLine[]
+  budgetRevisions  BudgetRevision[]
+  auditLogs        AuditLog[]
+  approvalRequests ApprovalRequest[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
 
 model Account {
@@ -69,11 +154,265 @@ model AuthenticatedSession {
 }
 
 model Membership {
-  id         String   @id @default(cuid())
-  userId     String
-  teamId     String
-  role       String   @default("member")
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String           @id @default(cuid())
+  userId         String
+  organizationId String
+  role           OrganizationRole @default(STAFF)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
-  @@unique([userId, teamId])
+  @@unique([userId, organizationId])
+}
+
+model UserPreference {
+  id                 String        @id @default(cuid())
+  userId             String        @unique
+  lastOrganizationId String?
+  locale             String?
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastOrganization   Organization? @relation("LastOrganization", fields: [lastOrganizationId], references: [id], onDelete: SetNull)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+}
+
+model Customer {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  companyName    String?
+  phone          String?
+  email          String?
+  address        String?
+  note           String?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  projects       Project[]
+  quotations     Quotation[]
+  surveyAppointments SurveyAppointment[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Project {
+  id             String        @id @default(cuid())
+  organizationId String
+  customerId     String?
+  createdById    String
+  name           String
+  code           String?
+  description    String?
+  location       String?
+  status         ProjectStatus @default(PLANNING)
+  budgetInCents  Int?
+  startDate      DateTime?
+  endDate        DateTime?
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer       Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  createdBy      User          @relation("ProjectCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  transactions   Transaction[]
+  attachments    Attachment[]
+  quotations     Quotation[]
+  surveyAppointments SurveyAppointment[]
+  budgetLines    ProjectBudgetLine[]
+  budgetRevisions BudgetRevision[]
+  auditLogs      AuditLog[]
+  approvalRequests ApprovalRequest[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Transaction {
+  id             String          @id @default(cuid())
+  organizationId String
+  projectId      String?
+  budgetCategoryId String?
+  createdById    String
+  type           TransactionType
+  paymentStatus  PaymentStatus   @default(PAID)
+  category       String
+  vendorName     String?
+  referenceNumber String?
+  amountInCents  Int
+  description    String?
+  transactionDate DateTime       @default(now())
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project        Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  budgetCategory BudgetCategory? @relation(fields: [budgetCategoryId], references: [id], onDelete: SetNull)
+  createdBy      User            @relation("TransactionCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  attachments    Attachment[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model BudgetCategory {
+  id               String              @id @default(cuid())
+  organizationId   String
+  name             String
+  colorToken       String?
+  sortOrder        Int                 @default(0)
+  organization     Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  projectBudgetLines ProjectBudgetLine[]
+  transactions     Transaction[]
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@unique([organizationId, name])
+}
+
+model ProjectBudgetLine {
+  id                 String         @id @default(cuid())
+  organizationId     String
+  projectId          String
+  budgetCategoryId   String
+  plannedAmountInCents Int
+  note               String?
+  organization       Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project            Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  budgetCategory     BudgetCategory @relation(fields: [budgetCategoryId], references: [id], onDelete: Cascade)
+  revisions          BudgetRevision[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@unique([projectId, budgetCategoryId])
+}
+
+model BudgetRevision {
+  id                  String            @id @default(cuid())
+  organizationId      String
+  projectId           String
+  projectBudgetLineId String?
+  changedById         String
+  action              String
+  budgetCategoryName  String
+  previousAmountInCents Int?
+  newAmountInCents    Int?
+  note                String?
+  reason              String?
+  organization        Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project             Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectBudgetLine   ProjectBudgetLine? @relation(fields: [projectBudgetLineId], references: [id], onDelete: SetNull)
+  changedBy           User              @relation("BudgetRevisionActor", fields: [changedById], references: [id], onDelete: Cascade)
+  createdAt           DateTime          @default(now())
+}
+
+model AuditLog {
+  id             String       @id @default(cuid())
+  organizationId String
+  projectId      String?
+  actorId        String
+  entityType     String
+  entityId       String
+  action         String
+  summary        String
+  beforeJson     String?
+  afterJson      String?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project        Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  actor          User         @relation("AuditLogActor", fields: [actorId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+}
+
+model ApprovalRequest {
+  id             String                @id @default(cuid())
+  organizationId String
+  projectId      String?
+  requestedById  String
+  approvedById   String?
+  entityType     String
+  action         String
+  status         ApprovalRequestStatus @default(PENDING)
+  summary        String
+  payloadJson    String
+  responseNote   String?
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project        Project?              @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  requestedBy    User                  @relation("ApprovalRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  approvedBy     User?                 @relation("ApprovalApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  respondedAt    DateTime?
+}
+
+model Attachment {
+  id             String       @id @default(cuid())
+  organizationId String
+  projectId      String?
+  transactionId  String?
+  uploadedById   String
+  fileName       String
+  filePath       String
+  fileType       String
+  fileSize       Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project        Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  transaction    Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  uploadedBy     User         @relation("AttachmentUploader", fields: [uploadedById], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+}
+
+model Quotation {
+  id               String          @id @default(cuid())
+  organizationId   String
+  customerId       String
+  projectId        String?
+  createdById      String
+  quotationNumber  String
+  status           QuotationStatus @default(DRAFT)
+  issueDate        DateTime        @default(now())
+  validUntil       DateTime?
+  subtotalInCents  Int             @default(0)
+  discountInCents  Int             @default(0)
+  taxEnabled       Boolean         @default(false)
+  taxRate          Float           @default(7)
+  taxInCents       Int             @default(0)
+  totalInCents     Int             @default(0)
+  note             String?
+  organization     Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer         Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  project          Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdBy        User            @relation("QuotationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  items            QuotationItem[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@unique([organizationId, quotationNumber])
+}
+
+model QuotationItem {
+  id               String    @id @default(cuid())
+  quotationId      String
+  description      String
+  quantity         Float
+  unit             String?
+  unitPriceInCents Int
+  totalInCents     Int
+  sortOrder        Int       @default(0)
+  quotation        Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model SurveyAppointment {
+  id             String                   @id @default(cuid())
+  organizationId String
+  customerId     String
+  projectId      String?
+  assignedToId   String?
+  createdById    String
+  title          String
+  location       String
+  contactName    String?
+  contactPhone   String?
+  scheduledStart DateTime
+  scheduledEnd   DateTime?
+  status         SurveyAppointmentStatus @default(PENDING)
+  note           String?
+  organization   Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer       Customer                 @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  project        Project?                 @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  assignedTo     User?                    @relation("SurveyAppointmentAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy      User                     @relation("SurveyAppointmentCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
 }

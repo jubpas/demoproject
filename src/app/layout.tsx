@@ -13,8 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "My App",
-  description: "แอปพลิเคชัน Next.js พร้อมระบบ Login",
+  title: {
+    default: "ไซต์งานโปร",
+    template: "%s | ไซต์งานโปร",
+  },
+  description: "ระบบบริหารจัดการโครงการรับเหมาก่อสร้างสำหรับหลายบริษัทและหลายทีม",
 };
 
 export default function RootLayout({
@@ -27,7 +30,7 @@ export default function RootLayout({
       lang="th"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full bg-[var(--background)] text-[var(--foreground)]">{children}</body>
     </html>
   );
 }

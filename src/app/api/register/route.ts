@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/db";
-import { signIn } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
     const { name, email, password } = await req.json();
+    const normalizedEmail = email?.trim().toLowerCase();
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return NextResponse.json(
         { error: "กรุณากรอกข้อมูลให้ครบ" },
         { status: 400 }
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     }
 
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
@@ -30,18 +30,12 @@ export async function POST(req: Request) {
     await prisma.user.create({
       data: {
         name: name?.trim() || "",
-        email,
+        email: normalizedEmail,
         password: hashedPassword,
       },
     });
 
-    await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true }, { status: 201 });
   } catch (error) {
     console.error("Registration error:", error);
     return NextResponse.json(
