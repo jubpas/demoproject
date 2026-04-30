@@ -20,16 +20,18 @@ export default async function OrganizationLayout({ children, params }: Props) {
     { href: `/${validLocale}/org/${orgSlug}/dashboard`, label: messages.nav.dashboard },
     { href: `/${validLocale}/org/${orgSlug}/projects`, label: messages.nav.projects },
     { href: `/${validLocale}/org/${orgSlug}/customers`, label: messages.nav.customers },
+    { href: `/${validLocale}/org/${orgSlug}/members`, label: messages.nav.members },
     { href: `/${validLocale}/org/${orgSlug}/reports`, label: messages.nav.reports },
     { href: `/${validLocale}/org/${orgSlug}/survey-appointments`, label: messages.nav.surveyAppointments },
     { href: `/${validLocale}/org/${orgSlug}/quotations`, label: messages.nav.quotations },
     { href: `/${validLocale}/org/${orgSlug}/transactions`, label: messages.nav.transactions },
+    { href: `/${validLocale}/org/${orgSlug}/settings`, label: messages.nav.settings },
   ];
 
   return (
-    <main className="min-h-screen bg-slate-100">
-      <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col lg:flex-row">
-        <aside className="bg-slate-950 px-5 py-5 lg:flex lg:min-h-screen lg:w-80 lg:flex-col lg:px-6 lg:py-6">
+    <main className="min-h-screen bg-slate-950">
+      <div className="flex min-h-screen w-full flex-col lg:flex-row">
+        <aside className="bg-slate-950 px-5 py-5 lg:flex lg:min-h-screen lg:w-80 lg:shrink-0 lg:flex-col lg:border-r lg:border-white/10 lg:px-6 lg:py-6 xl:w-88">
           <div className="space-y-5">
             <div>
               <p className="text-xs uppercase tracking-[0.26em] text-blue-300">{messages.common.appName}</p>
@@ -73,8 +75,8 @@ export default async function OrganizationLayout({ children, params }: Props) {
           </div>
         </aside>
 
-        <section className="flex-1 px-4 py-4 sm:px-6 lg:px-8 lg:py-8">
-          <div className="mb-6 rounded-3xl border border-slate-200 bg-white px-5 py-4 shadow-sm sm:px-6">
+        <section className="min-w-0 flex-1 bg-slate-100 px-4 py-4 text-slate-950 sm:px-6 lg:px-8 lg:py-8 xl:px-10">
+          <div className="mb-6 rounded-3xl border border-slate-200 bg-white px-5 py-4 shadow-sm sm:px-6 lg:px-7">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-500">{organization.slug}</p>
@@ -84,6 +86,14 @@ export default async function OrganizationLayout({ children, params }: Props) {
                 <div className="rounded-2xl bg-slate-100 px-4 py-2 text-sm text-slate-600">
                   {user.name || user.email}
                 </div>
+                {user.isSuperAdmin ? (
+                  <a
+                    href={`/${validLocale}/admin`}
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                  >
+                    {messages.nav.admin}
+                  </a>
+                ) : null}
               </div>
             </div>
           </div>

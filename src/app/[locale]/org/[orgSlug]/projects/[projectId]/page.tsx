@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/dashboard/status-badge";
 import { getMessages } from "@/lib/messages";
 import { requireLocale, requireOrganizationAccess } from "@/lib/app-context";
 import { canManageOrganizationData } from "@/lib/organization";
+import { isTaskOverdue } from "@/lib/project-tasks";
 
 type Props = {
   params: Promise<{ locale: string; orgSlug: string; projectId: string }>;
@@ -34,6 +35,17 @@ export default async function ProjectDetailPage({ params }: Props) {
         },
         surveyAppointments: {
           orderBy: { scheduledStart: "desc" },
+        },
+        tasks: {
+          include: {
+            assignedTo: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: [{ updatedAt: "desc" }],
         },
         budgetLines: {
           include: {
@@ -182,6 +194,16 @@ export default async function ProjectDetailPage({ params }: Props) {
   };
 
   const projectStatus = projectStatusMap[project.status];
+  const openTasks = project.tasks.filter((task) => task.status !== "DONE" && task.status !== "CANCELLED");
+  const completedTasks = project.tasks.filter((task) => task.status === "DONE");
+  const overdueTasks = project.tasks.filter((task) => isTaskOverdue({ dueDate: task.dueDate, completedAt: task.completedAt, status: task.status }));
+  const upcomingMilestones = [
+    ...project.tasks.filter((task) => task.dueDate && task.status !== "DONE" && task.status !== "CANCELLED").map((task) => ({ id: task.id, title: task.title, date: task.dueDate })),
+    ...project.surveyAppointments.map((appointment) => ({ id: appointment.id, title: appointment.title, date: appointment.scheduledStart })),
+  ]
+    .filter((item): item is { id: string; title: string; date: Date } => Boolean(item.date))
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+    .slice(0, 3);
   const revisionActionMap = {
     CREATE: messages.projects.revisionCreated,
     UPDATE: messages.projects.revisionUpdated,
@@ -195,12 +217,26 @@ export default async function ProjectDetailPage({ params }: Props) {
         title={project.name}
         description={messages.projects.detailSubtitle}
         actions={
-          <Link
-            href={`/${validLocale}/org/${orgSlug}/projects`}
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-          >
-            {messages.projects.title}
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/${validLocale}/org/${orgSlug}/projects/${project.id}/tasks`}
+              className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
+            >
+              {messages.projects.viewTasks}
+            </Link>
+            <Link
+              href={`/${validLocale}/org/${orgSlug}/projects/${project.id}/schedule`}
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              {messages.projects.viewSchedule}
+            </Link>
+            <Link
+              href={`/${validLocale}/org/${orgSlug}/projects`}
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              {messages.projects.title}
+            </Link>
+          </div>
         }
       />
 
@@ -209,6 +245,13 @@ export default async function ProjectDetailPage({ params }: Props) {
         <MetricCard label={messages.transactions.income} value={moneyFormatter.format(incomeTotal / 100)} tone="green" />
         <MetricCard label={messages.transactions.expense} value={moneyFormatter.format(expenseTotal / 100)} tone="red" />
         <MetricCard label="Net" value={moneyFormatter.format(netTotal / 100)} tone={netTotal >= 0 ? "green" : "red"} />
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label={messages.projects.openTasks} value={String(openTasks.length)} tone="blue" />
+        <MetricCard label={messages.projects.overdueTasks} value={String(overdueTasks.length)} tone={overdueTasks.length > 0 ? "red" : "green"} />
+        <MetricCard label={messages.projects.completedTasks} value={String(completedTasks.length)} tone="green" />
+        <MetricCard label={messages.projects.upcomingMilestones} value={String(upcomingMilestones.length)} tone="slate" />
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
@@ -271,6 +314,27 @@ export default async function ProjectDetailPage({ params }: Props) {
       />
 
       <div className="grid gap-6 xl:grid-cols-2">
+        <DataPanel title={messages.projects.recentTasks} actions={<Link href={`/${validLocale}/org/${orgSlug}/projects/${project.id}/tasks`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">{messages.projects.viewTasks}</Link>}>
+          {project.tasks.length === 0 ? (
+            <p className="text-sm text-slate-500">{messages.projects.noRecentTasks}</p>
+          ) : (
+            <div className="space-y-3">
+              {project.tasks.slice(0, 6).map((task) => (
+                <div key={task.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-slate-950">{task.title}</p>
+                      <p className="mt-1 text-xs text-slate-500">{task.assignedTo?.name || task.assignedTo?.email || messages.projects.noAssignee}</p>
+                    </div>
+                    <p className="text-xs font-medium text-slate-500">{task.progressPercent}%</p>
+                  </div>
+                  <p className="mt-3 text-xs text-slate-500">{messages.projects.dueDate}: {task.dueDate ? task.dueDate.toISOString().slice(0, 10) : messages.common.noData}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </DataPanel>
+
         <DataPanel title={messages.projects.recentBudgetRevisions}>
           {budgetRevisions.length === 0 ? (
             <p className="text-sm text-slate-500">{messages.projects.noRevisions}</p>

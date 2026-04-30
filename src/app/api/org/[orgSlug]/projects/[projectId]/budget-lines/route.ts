@@ -80,7 +80,7 @@ export async function POST(request: Request, { params }: Props) {
 
     const budgetCategory = budgetCategories.find((item) => item.id === budgetCategoryId);
 
-    if (shouldRequireBudgetApproval(membership.role, plannedAmountInCents)) {
+    if (shouldRequireBudgetApproval(membership.role, plannedAmountInCents, membership.organization.approvalThresholdInCents)) {
       const approvalRequest = await createApprovalRequest({
         organizationId: membership.organizationId,
         projectId: project.id,

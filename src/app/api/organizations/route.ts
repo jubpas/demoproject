@@ -2,8 +2,27 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { ensureOrganizationBudgetCategories } from "@/lib/budget";
 import prisma from "@/lib/db";
-import { defaultLocale, isLocale } from "@/lib/locales";
+import { defaultLocale, isLocale, type Locale } from "@/lib/locales";
 import { slugify } from "@/lib/slug";
+
+type OrganizationErrorMessages = {
+  unauthorized: string;
+  requiredName: string;
+  generic: string;
+};
+
+const errorMessages: Record<Locale, OrganizationErrorMessages> = {
+  th: {
+    unauthorized: "กรุณาเข้าสู่ระบบก่อนดำเนินการ",
+    requiredName: "กรุณากรอกชื่อบริษัทหรือทีม",
+    generic: "เกิดข้อผิดพลาด กรุณาลองใหม่",
+  },
+  en: {
+    unauthorized: "Please sign in before continuing",
+    requiredName: "Please enter a company or team name",
+    generic: "Something went wrong. Please try again",
+  },
+};
 
 async function createUniqueSlug(baseName: string) {
   const baseSlug = slugify(baseName) || "organization";
@@ -19,21 +38,24 @@ async function createUniqueSlug(baseName: string) {
 }
 
 export async function POST(request: Request) {
+  let locale = defaultLocale;
+
   try {
     const session = await auth();
     const userId = session?.user?.id;
+    const body = await request.json();
+    locale = isLocale(body?.locale) ? body.locale : defaultLocale;
+    const messages = errorMessages[locale];
 
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: messages.unauthorized }, { status: 401 });
     }
 
-    const body = await request.json();
-    const name = body?.name?.trim();
-    const description = body?.description?.trim() || null;
-    const locale = isLocale(body?.locale) ? body.locale : defaultLocale;
+    const name = typeof body?.name === "string" ? body.name.trim() : "";
+    const description = typeof body?.description === "string" ? body.description.trim() || null : null;
 
     if (!name) {
-      return NextResponse.json({ error: "กรุณากรอกชื่อบริษัทหรือทีม" }, { status: 400 });
+      return NextResponse.json({ error: messages.requiredName }, { status: 400 });
     }
 
     const slug = await createUniqueSlug(name);
@@ -75,7 +97,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Create organization error:", error);
     return NextResponse.json(
-      { error: "เกิดข้อผิดพลาด กรุณาลองใหม่" },
+      { error: errorMessages[locale].generic },
       { status: 500 },
     );
   }

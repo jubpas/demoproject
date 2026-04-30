@@ -21,6 +21,21 @@ enum ProjectStatus {
   CANCELLED
 }
 
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
 enum TransactionType {
   INCOME
   EXPENSE
@@ -55,73 +70,113 @@ enum SurveyAppointmentStatus {
   RESCHEDULED
 }
 
+enum SystemRole {
+  USER
+  SUPER_ADMIN
+}
+
+enum OrganizationInviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+enum SubscriptionBillingInterval {
+  MONTHLY
+  YEARLY
+  LIFETIME
+}
+
+enum OrganizationSubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  EXPIRED
+  CANCELED
+  LIFETIME
+}
+
 model User {
-  id        String   @id @default(cuid())
-  name      String?
-  email     String   @unique
-  emailVerified DateTime?
-  image     String?
-  password  String?
-  Account           Account[]
-  Session           Session[]
-  Membership        Membership[]
-  AuthenticatedSession AuthenticatedSession[]
-  createdOrganizations Organization[] @relation("OrganizationCreator")
-  createdProjects      Project[]      @relation("ProjectCreator")
-  createdTransactions  Transaction[]  @relation("TransactionCreator")
-  uploadedAttachments  Attachment[]   @relation("AttachmentUploader")
-  preference           UserPreference?
-  createdQuotations    Quotation[]    @relation("QuotationCreator")
-  createdSurveyAppointments SurveyAppointment[] @relation("SurveyAppointmentCreator")
-  assignedSurveyAppointments SurveyAppointment[] @relation("SurveyAppointmentAssignee")
-  budgetRevisions    BudgetRevision[] @relation("BudgetRevisionActor")
-  auditLogs          AuditLog[]       @relation("AuditLogActor")
-  requestedApprovalRequests ApprovalRequest[] @relation("ApprovalRequester")
-  approvedApprovalRequests  ApprovalRequest[] @relation("ApprovalApprover")
+  id                                String                     @id @default(cuid())
+  name                              String?
+  email                             String                     @unique
+  emailVerified                     DateTime?
+  image                             String?
+  password                          String?
+  systemRole                        SystemRole                 @default(USER)
+  Account                           Account[]
+  Session                           Session[]
+  Membership                        Membership[]
+  AuthenticatedSession              AuthenticatedSession[]
+  createdOrganizations              Organization[]             @relation("OrganizationCreator")
+  createdProjects                   Project[]                  @relation("ProjectCreator")
+  createdTransactions               Transaction[]              @relation("TransactionCreator")
+  uploadedAttachments               Attachment[]               @relation("AttachmentUploader")
+  preference                        UserPreference?
+  createdQuotations                 Quotation[]                @relation("QuotationCreator")
+  createdSurveyAppointments         SurveyAppointment[]        @relation("SurveyAppointmentCreator")
+  assignedSurveyAppointments        SurveyAppointment[]        @relation("SurveyAppointmentAssignee")
+  createdProjectTasks               ProjectTask[]              @relation("ProjectTaskCreator")
+  assignedProjectTasks              ProjectTask[]              @relation("ProjectTaskAssignee")
+  budgetRevisions                   BudgetRevision[]           @relation("BudgetRevisionActor")
+  auditLogs                         AuditLog[]                 @relation("AuditLogActor")
+  requestedApprovalRequests         ApprovalRequest[]          @relation("ApprovalRequester")
+  approvedApprovalRequests          ApprovalRequest[]          @relation("ApprovalApprover")
+  sentOrganizationInvites           OrganizationInvite[]       @relation("OrganizationInviteSender")
+  acceptedOrganizationInvites       OrganizationInvite[]       @relation("OrganizationInviteAcceptor")
+  assignedOrganizationSubscriptions OrganizationSubscription[] @relation("OrganizationSubscriptionAssigner")
+  subscriptionEvents                SubscriptionEvent[]        @relation("SubscriptionEventActor")
+  passwordResetTokens               PasswordResetToken[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Organization {
-  id            String         @id @default(cuid())
-  name          String
-  slug          String         @unique
-  description   String?
-  createdById   String
-  createdBy     User           @relation("OrganizationCreator", fields: [createdById], references: [id], onDelete: Cascade)
-  memberships   Membership[]
-  customers     Customer[]
-  projects      Project[]
-  transactions  Transaction[]
-  attachments   Attachment[]
-  preferences   UserPreference[] @relation("LastOrganization")
-  quotations    Quotation[]
-  surveyAppointments SurveyAppointment[]
-  budgetCategories BudgetCategory[]
-  projectBudgetLines ProjectBudgetLine[]
-  budgetRevisions  BudgetRevision[]
-  auditLogs        AuditLog[]
-  approvalRequests ApprovalRequest[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id                       String                     @id @default(cuid())
+  name                     String
+  slug                     String                     @unique
+  description              String?
+  approvalThresholdInCents Int                        @default(10000000)
+  archivedAt               DateTime?
+  createdById              String
+  createdBy                User                       @relation("OrganizationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  memberships              Membership[]
+  invites                  OrganizationInvite[]
+  subscriptions            OrganizationSubscription[]
+  customers                Customer[]
+  projects                 Project[]
+  transactions             Transaction[]
+  attachments              Attachment[]
+  preferences              UserPreference[]           @relation("LastOrganization")
+  quotations               Quotation[]
+  surveyAppointments       SurveyAppointment[]
+  projectTasks             ProjectTask[]
+  budgetCategories         BudgetCategory[]
+  projectBudgetLines       ProjectBudgetLine[]
+  budgetRevisions          BudgetRevision[]
+  auditLogs                AuditLog[]
+  approvalRequests         ApprovalRequest[]
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
 }
 
 model Account {
-  id                String   @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  session_state     String?
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  session_state      String?
   oauth_token_secret String?
-  oauth_token_hash  String?
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  oauth_token_hash   String?
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -142,15 +197,27 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
 model AuthenticatedSession {
-  id             String   @id @default(cuid())
-  sessionToken   String   @unique
-  userId         String
-  expires        DateTime
-  ipAddress      String?
-  userAgent      String?
-  createdAt      DateTime @default(now())
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Membership {
@@ -166,6 +233,77 @@ model Membership {
   @@unique([userId, organizationId])
 }
 
+model OrganizationInvite {
+  id             String                   @id @default(cuid())
+  organizationId String
+  email          String
+  role           OrganizationRole         @default(STAFF)
+  tokenHash      String                   @unique
+  invitedById    String
+  acceptedById   String?
+  status         OrganizationInviteStatus @default(PENDING)
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  revokedAt      DateTime?
+  organization   Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy      User                     @relation("OrganizationInviteSender", fields: [invitedById], references: [id], onDelete: Cascade)
+  acceptedBy     User?                    @relation("OrganizationInviteAcceptor", fields: [acceptedById], references: [id], onDelete: SetNull)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  @@index([organizationId, status])
+  @@index([email, status])
+}
+
+model SubscriptionPlan {
+  id              String                      @id @default(cuid())
+  code            String                      @unique
+  name            String
+  description     String?
+  billingInterval SubscriptionBillingInterval
+  priceInCents    Int                         @default(0)
+  seatLimit       Int?
+  isActive        Boolean                     @default(true)
+  subscriptions   OrganizationSubscription[]
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+}
+
+model OrganizationSubscription {
+  id                     String                         @id @default(cuid())
+  organizationId         String
+  planId                 String
+  assignedById           String?
+  status                 OrganizationSubscriptionStatus @default(ACTIVE)
+  startedAt              DateTime                       @default(now())
+  renewAt                DateTime?
+  expiresAt              DateTime?
+  seatLimitOverride      Int?
+  externalCustomerId     String?
+  externalSubscriptionId String?
+  organization           Organization                   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plan                   SubscriptionPlan               @relation(fields: [planId], references: [id], onDelete: Cascade)
+  assignedBy             User?                          @relation("OrganizationSubscriptionAssigner", fields: [assignedById], references: [id], onDelete: SetNull)
+  events                 SubscriptionEvent[]
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
+
+  @@index([organizationId, status])
+}
+
+model SubscriptionEvent {
+  id                         String                   @id @default(cuid())
+  organizationSubscriptionId String
+  actorId                    String?
+  type                       String
+  note                       String?
+  organizationSubscription   OrganizationSubscription @relation(fields: [organizationSubscriptionId], references: [id], onDelete: Cascade)
+  actor                      User?                    @relation("SubscriptionEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+  createdAt                  DateTime                 @default(now())
+
+  @@index([organizationSubscriptionId, createdAt])
+}
+
 model UserPreference {
   id                 String        @id @default(cuid())
   userId             String        @unique
@@ -178,122 +316,155 @@ model UserPreference {
 }
 
 model Customer {
-  id             String       @id @default(cuid())
-  organizationId String
-  name           String
-  companyName    String?
-  phone          String?
-  email          String?
-  address        String?
-  note           String?
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  projects       Project[]
-  quotations     Quotation[]
+  id                 String              @id @default(cuid())
+  organizationId     String
+  name               String
+  companyName        String?
+  phone              String?
+  email              String?
+  address            String?
+  note               String?
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  projects           Project[]
+  quotations         Quotation[]
   surveyAppointments SurveyAppointment[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 }
 
 model Project {
-  id             String        @id @default(cuid())
-  organizationId String
-  customerId     String?
-  createdById    String
-  name           String
-  code           String?
-  description    String?
-  location       String?
-  status         ProjectStatus @default(PLANNING)
-  budgetInCents  Int?
-  startDate      DateTime?
-  endDate        DateTime?
-  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  customer       Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  createdBy      User          @relation("ProjectCreator", fields: [createdById], references: [id], onDelete: Cascade)
-  transactions   Transaction[]
-  attachments    Attachment[]
-  quotations     Quotation[]
+  id                 String              @id @default(cuid())
+  organizationId     String
+  customerId         String?
+  createdById        String
+  name               String
+  code               String?
+  description        String?
+  location           String?
+  status             ProjectStatus       @default(PLANNING)
+  budgetInCents      Int?
+  startDate          DateTime?
+  endDate            DateTime?
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer           Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  createdBy          User                @relation("ProjectCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  transactions       Transaction[]
+  attachments        Attachment[]
+  quotations         Quotation[]
   surveyAppointments SurveyAppointment[]
-  budgetLines    ProjectBudgetLine[]
-  budgetRevisions BudgetRevision[]
-  auditLogs      AuditLog[]
-  approvalRequests ApprovalRequest[]
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  tasks              ProjectTask[]
+  budgetLines        ProjectBudgetLine[]
+  budgetRevisions    BudgetRevision[]
+  auditLogs          AuditLog[]
+  approvalRequests   ApprovalRequest[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model ProjectTask {
+  id             String       @id @default(cuid())
+  organizationId String
+  projectId      String
+  parentTaskId   String?
+  assignedToId   String?
+  createdById    String
+  title          String
+  description    String?
+  status         TaskStatus   @default(TODO)
+  priority       TaskPriority @default(MEDIUM)
+  startDate      DateTime?
+  dueDate        DateTime?
+  endDate        DateTime?
+  progressPercent Int         @default(0)
+  sortOrder      Int          @default(0)
+  completedAt    DateTime?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parentTask     ProjectTask? @relation("ProjectTaskParent", fields: [parentTaskId], references: [id], onDelete: SetNull)
+  subtasks       ProjectTask[] @relation("ProjectTaskParent")
+  assignedTo     User?        @relation("ProjectTaskAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy      User         @relation("ProjectTaskCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, projectId, sortOrder])
+  @@index([projectId, status])
+  @@index([assignedToId, status])
+  @@index([parentTaskId])
 }
 
 model Transaction {
-  id             String          @id @default(cuid())
-  organizationId String
-  projectId      String?
+  id               String          @id @default(cuid())
+  organizationId   String
+  projectId        String?
   budgetCategoryId String?
-  createdById    String
-  type           TransactionType
-  paymentStatus  PaymentStatus   @default(PAID)
-  category       String
-  vendorName     String?
-  referenceNumber String?
-  amountInCents  Int
-  description    String?
-  transactionDate DateTime       @default(now())
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  project        Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  budgetCategory BudgetCategory? @relation(fields: [budgetCategoryId], references: [id], onDelete: SetNull)
-  createdBy      User            @relation("TransactionCreator", fields: [createdById], references: [id], onDelete: Cascade)
-  attachments    Attachment[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  createdById      String
+  type             TransactionType
+  paymentStatus    PaymentStatus   @default(PAID)
+  category         String
+  vendorName       String?
+  referenceNumber  String?
+  amountInCents    Int
+  description      String?
+  transactionDate  DateTime        @default(now())
+  organization     Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project          Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  budgetCategory   BudgetCategory? @relation(fields: [budgetCategoryId], references: [id], onDelete: SetNull)
+  createdBy        User            @relation("TransactionCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  attachments      Attachment[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 }
 
 model BudgetCategory {
-  id               String              @id @default(cuid())
-  organizationId   String
-  name             String
-  colorToken       String?
-  sortOrder        Int                 @default(0)
-  organization     Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id                 String              @id @default(cuid())
+  organizationId     String
+  name               String
+  colorToken         String?
+  sortOrder          Int                 @default(0)
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   projectBudgetLines ProjectBudgetLine[]
-  transactions     Transaction[]
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
+  transactions       Transaction[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
   @@unique([organizationId, name])
 }
 
 model ProjectBudgetLine {
-  id                 String         @id @default(cuid())
-  organizationId     String
-  projectId          String
-  budgetCategoryId   String
+  id                   String           @id @default(cuid())
+  organizationId       String
+  projectId            String
+  budgetCategoryId     String
   plannedAmountInCents Int
-  note               String?
-  organization       Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  project            Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  budgetCategory     BudgetCategory @relation(fields: [budgetCategoryId], references: [id], onDelete: Cascade)
-  revisions          BudgetRevision[]
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  note                 String?
+  organization         Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project              Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  budgetCategory       BudgetCategory   @relation(fields: [budgetCategoryId], references: [id], onDelete: Cascade)
+  revisions            BudgetRevision[]
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
 
   @@unique([projectId, budgetCategoryId])
 }
 
 model BudgetRevision {
-  id                  String            @id @default(cuid())
-  organizationId      String
-  projectId           String
-  projectBudgetLineId String?
-  changedById         String
-  action              String
-  budgetCategoryName  String
+  id                    String             @id @default(cuid())
+  organizationId        String
+  projectId             String
+  projectBudgetLineId   String?
+  changedById           String
+  action                String
+  budgetCategoryName    String
   previousAmountInCents Int?
-  newAmountInCents    Int?
-  note                String?
-  reason              String?
-  organization        Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  project             Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectBudgetLine   ProjectBudgetLine? @relation(fields: [projectBudgetLineId], references: [id], onDelete: SetNull)
-  changedBy           User              @relation("BudgetRevisionActor", fields: [changedById], references: [id], onDelete: Cascade)
-  createdAt           DateTime          @default(now())
+  newAmountInCents      Int?
+  note                  String?
+  reason                String?
+  organization          Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project               Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectBudgetLine     ProjectBudgetLine? @relation(fields: [projectBudgetLineId], references: [id], onDelete: SetNull)
+  changedBy             User               @relation("BudgetRevisionActor", fields: [changedById], references: [id], onDelete: Cascade)
+  createdAt             DateTime           @default(now())
 }
 
 model AuditLog {
@@ -352,29 +523,29 @@ model Attachment {
 }
 
 model Quotation {
-  id               String          @id @default(cuid())
-  organizationId   String
-  customerId       String
-  projectId        String?
-  createdById      String
-  quotationNumber  String
-  status           QuotationStatus @default(DRAFT)
-  issueDate        DateTime        @default(now())
-  validUntil       DateTime?
-  subtotalInCents  Int             @default(0)
-  discountInCents  Int             @default(0)
-  taxEnabled       Boolean         @default(false)
-  taxRate          Float           @default(7)
-  taxInCents       Int             @default(0)
-  totalInCents     Int             @default(0)
-  note             String?
-  organization     Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  customer         Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  project          Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  createdBy        User            @relation("QuotationCreator", fields: [createdById], references: [id], onDelete: Cascade)
-  items            QuotationItem[]
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  id              String          @id @default(cuid())
+  organizationId  String
+  customerId      String
+  projectId       String?
+  createdById     String
+  quotationNumber String
+  status          QuotationStatus @default(DRAFT)
+  issueDate       DateTime        @default(now())
+  validUntil      DateTime?
+  subtotalInCents Int             @default(0)
+  discountInCents Int             @default(0)
+  taxEnabled      Boolean         @default(false)
+  taxRate         Float           @default(7)
+  taxInCents      Int             @default(0)
+  totalInCents    Int             @default(0)
+  note            String?
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer        Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  project         Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdBy       User            @relation("QuotationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  items           QuotationItem[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   @@unique([organizationId, quotationNumber])
 }
@@ -394,7 +565,7 @@ model QuotationItem {
 }
 
 model SurveyAppointment {
-  id             String                   @id @default(cuid())
+  id             String                  @id @default(cuid())
   organizationId String
   customerId     String
   projectId      String?
@@ -408,11 +579,11 @@ model SurveyAppointment {
   scheduledEnd   DateTime?
   status         SurveyAppointmentStatus @default(PENDING)
   note           String?
-  organization   Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  customer       Customer                 @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  project        Project?                 @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  assignedTo     User?                    @relation("SurveyAppointmentAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
-  createdBy      User                     @relation("SurveyAppointmentCreator", fields: [createdById], references: [id], onDelete: Cascade)
-  createdAt      DateTime                 @default(now())
-  updatedAt      DateTime                 @updatedAt
+  organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer       Customer                @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  project        Project?                @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  assignedTo     User?                   @relation("SurveyAppointmentAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy      User                    @relation("SurveyAppointmentCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
 }

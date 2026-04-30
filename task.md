@@ -16,11 +16,33 @@
 - Local receipt upload สำหรับ transaction
 - Project Detail พร้อม linked business flow
 - Project Budgeting MVP พร้อม budget lines และ budget vs actual
+- Survey Appointment Queue ใช้งานได้ในระดับ CRUD เบื้องต้น
+- Quotation Management ใช้งานได้ในระดับ CRUD เบื้องต้น
+- Quotation Preview / Print
+- Flow `Survey Appointment -> Quotation`
+- Flow `Quotation -> Project`
+- Reports ระดับองค์กรสำหรับ Budget vs Actual
+- Audit Explorer ระดับองค์กร
+- Approval workflow สำหรับ budget change ที่เกิน threshold
+- Settings ระดับองค์กรสำหรับ `approvalThresholdInCents`
+- Member Management พร้อม invite link ระดับองค์กร
+- Super Admin Console สำหรับจัดการ organizations และ subscriptions เบื้องต้น
+- Subscription foundation แบบ monthly / yearly / lifetime พร้อม seat tracking
+- Dashboard summary cards, quick actions, และ recent transactions
 
 กำลังทำรอบนี้:
 
+- เก็บ deploy readiness ก่อนเปิดให้เพื่อนเทส
 - รีแฟกเตอร์ UI หลัง login ให้เป็น Light Admin Dashboard
-- จัดเอกสาร task แยกจาก project plan เพื่อใช้ตามงานรอบถัดไป
+- จัดเอกสาร task แยกจาก project plan ให้ตรงกับสภาพ repo ปัจจุบัน
+- เก็บ permission layer ให้รองรับ super admin และ organization members flow ให้ชัดขึ้นในจุดที่ยังเหลือ
+
+ถัดไปทันที:
+
+- ปิดช่องโหว่ forgot-password mock reset link ใน production
+- วางแผนย้ายจาก SQLite local file ไปยัง hosted database สำหรับ deploy
+- เก็บ super admin bootstrap safety ให้ไม่ผูกกับ email ดิบอย่างเดียว
+- ตัดสินใจแนวทาง deploy ฟรีสำหรับรอบทดสอบทีม
 
 อัปเดตล่าสุด:
 
@@ -41,60 +63,100 @@
 - เพิ่มหน้า `Audit Explorer` ระดับองค์กร พร้อม filter ตาม actor, entity, action, project และช่วงเวลา
 - เพิ่ม `ApprovalRequest` และ threshold-based approval workflow สำหรับ budget change ที่เกินเกณฑ์
 - เพิ่มหน้า `Approvals` พร้อม approve/reject สำหรับ OWNER/ADMIN
+- เพิ่ม `approvalThresholdInCents` field ใน Organization model สำหรับตั้งค่า threshold ได้ต่อองค์กร
+- สร้าง `Settings` page สำหรับอัปเดตค่า threshold การอนุมัติ
+- สร้าง API route `/api/org/[orgSlug]/settings/route.ts` สำหรับอัปเดต threshold พร้อมตรวจสอบ role
+- รีแฟกเตอร์ `src/lib/approvals.ts` ให้ใช้ threshold จาก `organization.approvalThresholdInCents` แทนค่า hardcoded
+- อัปเดต budget-line API routes (create/update/delete) ให้ส่ง threshold จาก org ไปยัง approval logic
+- เพิ่ม cost accounting foundation บางส่วนผ่าน `paymentStatus`, `vendorName`, `referenceNumber`, และ `budgetCategory`
+- เพิ่ม recent budget revision และ recent audit log ในหน้า project detail
+- แก้ settings form ให้ยิง `/api/org/[orgSlug]/settings` ตรงกับ route จริง และแปลงค่าบาทเป็น cents ก่อนบันทึก
+- แก้หน้า approvals ให้แสดง threshold จาก `organization.approvalThresholdInCents` แทนค่า default hardcoded
+- เพิ่มหน้า `Members` ระดับองค์กร พร้อมสร้าง invite link, เปลี่ยน role และลบสมาชิก
+- เพิ่มหน้า public `invite/[token]` สำหรับรับคำเชิญหลัง login/register
+- เพิ่ม `systemRole` สำหรับรองรับ `SUPER_ADMIN` และรองรับ bootstrap ผ่าน `SUPER_ADMIN_EMAILS`
+- เพิ่มหน้า `admin` และ `admin/organizations/[organizationId]` สำหรับจัดการองค์กรทั้งระบบ
+- เพิ่ม models `OrganizationInvite`, `SubscriptionPlan`, `OrganizationSubscription`, `SubscriptionEvent`
+- เพิ่ม subscription foundation แบบ manual admin-managed พร้อม monthly / yearly / lifetime plans และ seat limit summary
+- เพิ่มการแสดงแผนใช้งานและ seat usage ในหน้า settings ขององค์กร
 
 ## Main Tasks
 
 ### 1. Project Budget Control
 
 - เพิ่มการ lock budget เมื่อโครงการเริ่มใช้งานจริง
-- เพิ่ม threshold แบบปรับค่าได้ต่อ organization ในรอบถัดไป
+- ✅ เพิ่ม threshold แบบปรับค่าได้ต่อ organization — เสร็จแล้ว
+  - เพิ่ม field `approvalThresholdInCents` ใน Organization
+  - สร้าง Settings page และ API route สำหรับอัปเดตค่า
+  - รีแฟกเตอร์ approval logic ให้ใช้ค่าจาก DB แทน hardcoded
 
 ### 2. Cost Accounting
 
-- แยก transaction categories ให้เป็นระบบมากขึ้น
-- เพิ่ม payable / receivable status
-- เพิ่ม supplier/vendor master data ในรอบถัดไป
+- ✅ เพิ่ม `paymentStatus`, `vendorName`, `referenceNumber` และการผูก `budgetCategory` — เสร็จแล้วบางส่วน
+- เพิ่ม payable / receivable status ให้ครบขึ้น
+- เพิ่ม supplier/vendor master data
 - เพิ่มเอกสารอ้างอิงทางบัญชีให้ละเอียดขึ้น
 
 ### 3. Reporting
 
 - เพิ่ม project profit/loss report
-- เพิ่ม expense breakdown by category
-- เพิ่ม over-budget project report
+- เพิ่ม over-budget project report ให้ลึกขึ้น
 - เพิ่ม export CSV/PDF ใน phase ถัดไป
 
 ### 4. Auditing
 
-- ขยาย audit log ไปยัง project และ quotation
 - เพิ่มแสดง before/after diff แบบอ่านง่ายขึ้น
+- ขยาย audit log ไปยัง entity อื่นให้ครบขึ้น
 - เพิ่ม export audit log ใน phase ถัดไป
 
-### 5. Transaction Attachments
-
-- เพิ่ม replace receipt ตอนแก้ transaction
-- เพิ่ม remove receipt แบบแยกไฟล์
-- รองรับหลายไฟล์ต่อ transaction ใน phase ถัดไป
-
-### 6. Filters And Search
+### 5. Filters And Search
 
 - เพิ่ม search/filter ใน Customers
 - เพิ่ม search/filter ใน Projects
 - เพิ่ม search/filter ใน Transactions
 - รองรับ filter ตาม status, type, project, date range
 
-### 7. Dashboard Analytics
+### 6. Dashboard Analytics
 
 - เพิ่ม profit/loss summary
-- เพิ่ม analytics section, recent activity, overview cards
-- เพิ่ม visual summary แบบเบา ๆ โดยยังไม่เพิ่ม chart library ถ้าไม่จำเป็น
+- เพิ่ม analytics section และ visual summary แบบเบา ๆ
+- เพิ่ม recent activity ให้เชื่อมกับ audit/revision มากขึ้น
 
-### 8. Member Management
+### 7. Member Management
 
-- เพิ่มหน้าจัดการสมาชิกองค์กร
-- แสดง role: `OWNER`, `ADMIN`, `MANAGER`, `STAFF`
-- เพิ่ม invite/change role/remove member ในรอบถัดไป
+- ✅ เพิ่มหน้าจัดการสมาชิกองค์กร — เสร็จแล้วระดับพื้นฐาน
+- ✅ แสดง role: `OWNER`, `ADMIN`, `MANAGER`, `STAFF`
+- ✅ เพิ่ม invite link / change role / remove member ระดับพื้นฐาน
+- เพิ่ม email delivery สำหรับ invite ในรอบถัดไป
+- เพิ่ม owner transfer flow แบบชัดเจนในรอบถัดไป
+- เพิ่ม member audit log สำหรับการเชิญ, เปลี่ยน role, และลบสมาชิกในรอบถัดไป
 
-### 9. Quotation Management
+### 8. Super Admin And Billing
+
+- ✅ เพิ่ม `SUPER_ADMIN` foundation และ admin routes ระดับระบบ
+- ✅ เพิ่ม organization management ระดับระบบแบบ create/edit/archive
+- ✅ เพิ่ม subscription foundation แบบ monthly / yearly / lifetime
+- ✅ เพิ่ม seat tracking โดยนับสมาชิก + pending invites
+- เก็บ bootstrap safety และ production guardrails ของ super admin
+- เพิ่ม payment gateway integration ในรอบถัดไป
+- เพิ่ม checkout / self-service billing flow สำหรับ owner องค์กรในรอบถัดไป
+- เพิ่ม custom plan management และ billing history ให้ลึกขึ้นในรอบถัดไป
+
+### 9. Deploy Readiness And Security
+
+- ปิดการส่ง `resetUrl` กลับ client ใน production เมื่อ email delivery ไม่พร้อม
+- วางแผนหรือย้าย database จาก SQLite local file ไปยัง hosted database สำหรับการ deploy จริง
+- หยุด track `dev.db` ใน workflow deployment และแยก local development data ออกจาก shared environment
+- ตรวจ `AUTH_SECRET`, `NEXTAUTH_SECRET`, `APP_URL`, `DATABASE_URL`, และ mail provider env ให้ครบ
+- ทบทวน super admin bootstrap ผ่าน `SUPER_ADMIN_EMAILS` ให้ปลอดภัยขึ้น
+
+### 10. Transaction Attachments
+
+- เพิ่ม replace receipt ตอนแก้ transaction
+- เพิ่ม remove receipt แบบแยกไฟล์
+- รองรับหลายไฟล์ต่อ transaction ใน phase ถัดไป
+
+### 11. Quotation Management
 
 - เพิ่มหน้าออกใบเสนอราคา
 - รองรับผูกกับลูกค้าและโครงการ
@@ -104,7 +166,7 @@
 - เมื่อเปิด VAT ให้ใช้ 7% เป็นค่าเริ่มต้น และอนุญาตให้แก้เปอร์เซ็นต์ได้
 - เตรียมหน้า preview/print สำหรับส่งลูกค้า
 
-### 10. Survey Appointment Queue
+### 12. Survey Appointment Queue
 
 - เพิ่มหน้าคิวสำรวจ / นัดลูกค้า
 - ผูกกับ customer และ project ได้ในอนาคต
@@ -114,14 +176,17 @@
 
 ## Recommended Order
 
-1. Cost Accounting
-2. Reporting
-3. Auditing
-4. Project Budget Control
-5. Filters And Search
-6. Transaction Attachments
-7. Dashboard Analytics เพิ่มเติม
-8. Member Management
+1. Profit/Loss Reporting
+2. Deploy Readiness And Security
+3. Audit Diff Readability
+4. Filters And Search
+5. Dashboard Analytics เพิ่มเติม
+6. Member Management Enhancements
+7. Transaction Attachment Improvements
+8. Cost Accounting Expansion
+9. Invite Email Delivery
+10. Owner Transfer And Member Audit Log
+11. Payment Gateway And Billing Checkout
 
 ## Notes
 
@@ -130,4 +195,9 @@
 - Mobile ต้อง fallback เป็น cards และ stacked sections
 - ทุก task ใหม่ต้องอัปเดตไฟล์นี้และ `project-plan.md` เสมอ
 - business flow ที่ต้องรองรับระยะถัดไปคือ `Customer -> Survey Appointment -> Quotation -> Project -> Transactions`
-- implementation รอบต่อไปควรเพิ่ม profit/loss report, approval threshold settings, และ audit diff ที่อ่านง่ายขึ้น
+- ✅ `approval threshold settings` ทำเสร็จแล้ว (2026-04-28)
+- ✅ `settings endpoint mismatch` และ `approval threshold display` เก็บแล้ว (2026-04-28)
+- implementation รอบต่อไปควรเพิ่ม profit/loss report, deploy hardening, และ audit diff ที่อ่านง่ายขึ้น
+- เอกสารต้องสะท้อนว่า approval workflow และ threshold settings ทำเสร็จแล้ว
+- มี code/doc drift เรื่อง i18n: เอกสารเดิมอ้าง `next-intl` แต่โค้ดจริงใช้ message modules แบบ `.ts`
+- implementation รอบถัดไปควรเก็บ technical alignment ควบคู่กับ feature work

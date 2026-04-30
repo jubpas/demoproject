@@ -4,7 +4,7 @@ import type { ApprovalRequest, OrganizationRole } from "@prisma/client";
 import prisma from "@/lib/db";
 import { createAuditLog, createBudgetRevision } from "@/lib/audit";
 
-export const BUDGET_APPROVAL_THRESHOLD_IN_CENTS = 100000 * 100;
+export const DEFAULT_BUDGET_APPROVAL_THRESHOLD_IN_CENTS = 10000000;
 
 export type BudgetApprovalPayload = {
   type: "CREATE" | "UPDATE" | "DELETE";
@@ -21,8 +21,9 @@ export function canApproveBudgetRequests(role: OrganizationRole) {
   return role === "OWNER" || role === "ADMIN";
 }
 
-export function shouldRequireBudgetApproval(role: OrganizationRole, deltaInCents: number) {
-  return !canApproveBudgetRequests(role) && deltaInCents >= BUDGET_APPROVAL_THRESHOLD_IN_CENTS;
+export function shouldRequireBudgetApproval(role: OrganizationRole, deltaInCents: number, thresholdInCents?: number) {
+  const effectiveThreshold = thresholdInCents ?? DEFAULT_BUDGET_APPROVAL_THRESHOLD_IN_CENTS;
+  return !canApproveBudgetRequests(role) && deltaInCents >= effectiveThreshold;
 }
 
 export async function createApprovalRequest(input: {

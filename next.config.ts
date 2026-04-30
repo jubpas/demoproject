@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@prisma/client", "prisma", "@auth/prisma-adapter"],
+  serverExternalPackages: [
+    "@auth/prisma-adapter",
+    "@prisma/adapter-better-sqlite3",
+    "@prisma/client",
+    "better-sqlite3",
+    "prisma",
+  ],
 };
 
 export default nextConfig;

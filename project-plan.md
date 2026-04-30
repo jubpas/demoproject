@@ -28,11 +28,32 @@
 /th/register
 /en/register
 
+/th/forgot-password
+/en/forgot-password
+
+/th/reset-password/[token]
+/en/reset-password/[token]
+
 /th/onboarding/create-organization
 /en/onboarding/create-organization
 
+/th/invite/[token]
+/en/invite/[token]
+
+/th/admin
+/en/admin
+
+/th/admin/organizations
+/en/admin/organizations
+
+/th/admin/organizations/[organizationId]
+/en/admin/organizations/[organizationId]
+
 /th/org/[orgSlug]/dashboard
 /en/org/[orgSlug]/dashboard
+
+/th/org/[orgSlug]/members
+/en/org/[orgSlug]/members
 
 /th/org/[orgSlug]/customers
 /en/org/[orgSlug]/customers
@@ -48,6 +69,18 @@
 
 /th/org/[orgSlug]/survey-appointments
 /en/org/[orgSlug]/survey-appointments
+
+/th/org/[orgSlug]/reports
+/en/org/[orgSlug]/reports
+
+/th/org/[orgSlug]/reports/audit
+/en/org/[orgSlug]/reports/audit
+
+/th/org/[orgSlug]/reports/approvals
+/en/org/[orgSlug]/reports/approvals
+
+/th/org/[orgSlug]/settings
+/en/org/[orgSlug]/settings
 ```
 
 แนวทาง:
@@ -71,6 +104,16 @@
 2. ผู้ใช้ที่ login แล้วแต่ยังไม่มี organization ต้องไป onboarding
 3. ผู้ใช้ที่มี organization แล้วไม่ควรย้อนกลับหน้า onboarding โดยไม่จำเป็น
 4. ทุกการเข้าถึงข้อมูล organization ต้องตรวจว่า user เป็นสมาชิกจริง
+
+## Deploy Readiness
+
+ประเด็นที่ต้องเก็บก่อนเปิดระบบให้คนนอกทีมทดสอบ:
+
+- password reset ต้องไม่ fallback เป็น mock link ที่ถูกส่งกลับ client ใน production
+- ต้องตั้งค่า `AUTH_SECRET` หรือ `NEXTAUTH_SECRET`, `APP_URL`, `DATABASE_URL` และ mail provider env ให้ครบ
+- ถ้ายังใช้ SQLite local file ต้องถือว่าเหมาะกับ local development เท่านั้น
+- ถ้าจะ deploy ให้เพื่อนเทสจริง ให้เตรียม hosted database แยกจาก `dev.db`
+- `SUPER_ADMIN_EMAILS` เป็น bootstrap helper เท่านั้น ไม่ควรเป็นกลไกสิทธิ์สุดท้ายระยะยาวโดยไม่มี email verification หรือ DB-backed role
 
 ## Roles
 
@@ -103,7 +146,11 @@
 
 - `Organization`
 - `Membership`
+- `OrganizationInvite`
 - `UserPreference`
+- `SubscriptionPlan`
+- `OrganizationSubscription`
+- `SubscriptionEvent`
 - `Customer`
 - `Project`
 - `Transaction`
@@ -121,6 +168,8 @@
 
 ```txt
 User many-to-many Organization ผ่าน Membership
+Organization 1-to-many OrganizationInvite
+Organization 1-to-many OrganizationSubscription
 Organization 1-to-many Customer
 Organization 1-to-many Project
 Organization 1-to-many Transaction
@@ -141,6 +190,7 @@ SurveyAppointment belongs-to Project (optional)
 BudgetCategory belongs-to Organization
 ProjectBudgetLine belongs-to Project
 ProjectBudgetLine belongs-to BudgetCategory
+OrganizationSubscription belongs-to SubscriptionPlan
 ```
 
 ### Required Organization Fields
@@ -150,7 +200,8 @@ ProjectBudgetLine belongs-to BudgetCategory
 - `slug`
 - `description?`
 - `createdById`
-- timestamps
+- `approvalThresholdInCents` (Int @default(10000000))
+- `timestamps`
 
 ### Required Membership Fields
 
@@ -158,6 +209,40 @@ ProjectBudgetLine belongs-to BudgetCategory
 - `organizationId`
 - `role`
 - unique composite on `[userId, organizationId]`
+
+### Required Organization Invite Fields
+
+- `organizationId`
+- `email`
+- `role`
+- `tokenHash`
+- `status`
+- `invitedById`
+- `acceptedById?`
+- `expiresAt`
+
+### Next Member Management Enhancements
+
+- ส่ง email invitation จากระบบโดยตรง
+- เพิ่ม owner transfer flow แบบปลอดภัย
+- เพิ่ม member audit log สำหรับ invite / role change / remove member
+
+### Required Subscription Fields
+
+- `SubscriptionPlan.code`
+- `SubscriptionPlan.billingInterval` = `MONTHLY | YEARLY | LIFETIME`
+- `SubscriptionPlan.seatLimit?`
+- `OrganizationSubscription.status`
+- `OrganizationSubscription.startedAt`
+- `OrganizationSubscription.renewAt?`
+- `OrganizationSubscription.expiresAt?`
+- `OrganizationSubscription.seatLimitOverride?`
+
+### Billing Next Steps
+
+- เตรียม payment gateway integration โดยไม่รื้อ schema หลัก
+- เพิ่ม owner-facing checkout / self-service billing flow
+- เพิ่มประวัติ billing events และ reconciliation ให้ละเอียดขึ้นใน phase ถัดไป
 
 ### Required UserPreference Fields
 
@@ -167,11 +252,12 @@ ProjectBudgetLine belongs-to BudgetCategory
 
 ## i18n Plan
 
-แนวทางที่ใช้:
+แนวทางที่ใช้จริงตอนนี้:
 
-- ใช้ `next-intl`
-- เก็บข้อความแปลใน `src/messages/th.json` และ `src/messages/en.json`
-- สร้าง helper กลางใน `src/i18n/`
+- ใช้ locale route แบบ `/th/...` และ `/en/...`
+- ใช้ message modules ภายใต้ `src/messages/*.ts`
+- ใช้ helper กลางสำหรับเลือกข้อความตาม locale
+- เอกสารเดิมที่อ้าง `next-intl` และ `src/messages/*.json` ถือเป็นแนวทางเดิม ไม่ตรงกับ implementation ปัจจุบัน
 
 ข้อความควรแยก namespace อย่างน้อย:
 
@@ -211,6 +297,8 @@ ProjectBudgetLine belongs-to BudgetCategory
 
 ### Phase 1: Foundation
 
+Status: Done
+
 1. ตรวจและเพิ่ม dependencies ที่จำเป็น
 2. จัด route เป็น `[locale]`
 3. ทำ proxy ให้รองรับ locale + auth + onboarding redirects
@@ -220,6 +308,8 @@ ProjectBudgetLine belongs-to BudgetCategory
 
 ### Phase 2: App Shell
 
+Status: Done
+
 1. สร้าง auth layout และ app layout
 2. ทำ language switcher
 3. ทำ organization-aware navigation
@@ -227,11 +317,15 @@ ProjectBudgetLine belongs-to BudgetCategory
 
 ### Phase 3: Dashboard MVP
 
+Status: Done
+
 1. สร้าง dashboard ภายใต้ `orgSlug`
 2. แสดง summary เบื้องต้น
 3. รองรับ empty states
 
 ### Phase 4: Customers MVP
+
+Status: Done
 
 1. รายการลูกค้า
 2. เพิ่มลูกค้า
@@ -240,6 +334,8 @@ ProjectBudgetLine belongs-to BudgetCategory
 
 ### Phase 5: Projects MVP
 
+Status: Done
+
 1. รายการโครงการ
 2. เพิ่มโครงการ
 3. แก้ไขโครงการ
@@ -247,11 +343,15 @@ ProjectBudgetLine belongs-to BudgetCategory
 
 ### Phase 6: Transactions MVP
 
+Status: Done
+
 1. เพิ่มรายรับ/รายจ่าย
 2. แนบรูปใบเสร็จ
 3. แสดงรายการล่าสุดใน dashboard
 
 ### Phase 7: Quotation MVP
+
+Status: Done
 
 1. สร้างรายการใบเสนอราคา
 2. ผูกลูกค้าและโครงการ
@@ -262,6 +362,8 @@ ProjectBudgetLine belongs-to BudgetCategory
 
 ### Phase 8: Survey Appointment MVP
 
+Status: Done
+
 1. สร้างคิวนัดสำรวจ
 2. ผูกลูกค้า
 3. ระบุวันเวลาและผู้รับผิดชอบ
@@ -269,6 +371,8 @@ ProjectBudgetLine belongs-to BudgetCategory
 5. เตรียม flow ต่อไปยัง quotation หรือ project
 
 ### Phase 9: Project Budgeting MVP
+
+Status: Done
 
 1. เพิ่ม budget categories ระดับ organization
 2. เพิ่ม budget lines ระดับ project
@@ -278,6 +382,21 @@ ProjectBudgetLine belongs-to BudgetCategory
 
 ### Phase 10: Cost Accounting Foundation
 
+Status: Partial
+
+Completed:
+
+- เพิ่ม `paymentStatus`
+- เพิ่ม `vendorName` / payee foundation
+- เพิ่ม `referenceNumber`
+- เพิ่มการผูก `budgetCategory` เข้ากับ transaction
+
+Remaining:
+
+- เพิ่ม payable / receivable ให้ครบขึ้น
+- เพิ่ม supplier/vendor master data
+- เพิ่มรายงานบัญชีที่ใช้ข้อมูลชุดนี้ได้จริง
+
 1. เพิ่ม payment status
 2. เพิ่ม vendor / payee
 3. เพิ่ม reference number
@@ -285,10 +404,27 @@ ProjectBudgetLine belongs-to BudgetCategory
 
 ### Phase 11: Reporting And Auditing
 
-1. สร้าง budget vs actual report
+Status: Partial
+
+Completed:
+
+- ✅ สร้าง budget vs actual report
+- ✅ เพิ่ม audit log สำหรับข้อมูลสำคัญ
+- ✅ เพิ่ม approval workflow สำหรับ budget change
+- ✅ เพิ่ม organization-level approval threshold settings
+
+Remaining:
+
+- สร้าง profit/loss report ระดับโครงการหรือระดับองค์กร
+- ปรับ audit diff ให้แสดงผลอ่านง่ายขึ้น
+- ต่อยอด reporting/auditing สำหรับ production usage
+
+1. ✅ สร้าง budget vs actual report
 2. สร้าง profit/loss report ระดับโครงการ
-3. เพิ่ม audit log สำหรับข้อมูลสำคัญ
-4. เพิ่ม approval workflow ใน phase หลัง
+3. ✅ เพิ่ม audit log สำหรับข้อมูลสำคัญ
+4. ✅ เพิ่ม approval workflow สำหรับ budget change
+5. ✅ เพิ่ม organization-level approval threshold settings
+6. ปรับ audit diff ให้แสดงผลอ่านง่ายขึ้น
 
 ## Quotation Plan
 
@@ -443,6 +579,12 @@ Completed in current round:
 - เพิ่มหน้า `reports/audit` ระดับองค์กรสำหรับค้นหา audit log ตาม actor, entity, action, project, และช่วงเวลา
 - เพิ่ม `ApprovalRequest` และหน้า `reports/approvals` สำหรับอนุมัติ budget change ที่เกิน threshold
 - เพิ่ม approve/reject API สำหรับคำขออนุมัติและเชื่อมการบันทึก audit เมื่อมีการอนุมัติหรือปฏิเสธ
+- เพิ่มหน้า `settings` ระดับองค์กรสำหรับตั้งค่า approval threshold
+- เพิ่ม `approvalThresholdInCents` ใน Organization และเชื่อม approval logic ให้ใช้ค่าจากองค์กร
+- เพิ่ม dashboard summary cards, quick actions, และ recent transactions
+- เพิ่ม cost accounting foundation บางส่วนผ่าน `paymentStatus`, `vendorName`, `referenceNumber`, และ `budgetCategory`
+- แก้ settings form ให้ submit เข้า `/api/org/[orgSlug]/settings` และ route handler แปลงค่าบาทเป็น cents ก่อนบันทึก
+- แก้หน้า `reports/approvals` ให้แสดง threshold จาก organization จริง
 
 Current implemented routes:
 
@@ -450,27 +592,40 @@ Current implemented routes:
 /th/org/[orgSlug]/dashboard
 /th/org/[orgSlug]/customers
 /th/org/[orgSlug]/projects
+/th/org/[orgSlug]/projects/[projectId]
 /th/org/[orgSlug]/transactions
 /th/org/[orgSlug]/survey-appointments
 /th/org/[orgSlug]/quotations
+/th/org/[orgSlug]/quotations/[quotationId]
+/th/org/[orgSlug]/reports
+/th/org/[orgSlug]/reports/audit
+/th/org/[orgSlug]/reports/approvals
+/th/org/[orgSlug]/settings
 
 /en/org/[orgSlug]/dashboard
 /en/org/[orgSlug]/customers
 /en/org/[orgSlug]/projects
+/en/org/[orgSlug]/projects/[projectId]
 /en/org/[orgSlug]/transactions
 /en/org/[orgSlug]/survey-appointments
 /en/org/[orgSlug]/quotations
+/en/org/[orgSlug]/quotations/[quotationId]
+/en/org/[orgSlug]/reports
+/en/org/[orgSlug]/reports/audit
+/en/org/[orgSlug]/reports/approvals
+/en/org/[orgSlug]/settings
 ```
 
 Suggested next phase:
 
 1. ทำรายงาน profit/loss ระดับองค์กรและระดับโครงการ
-2. ปรับ audit log ให้แสดง diff ที่อ่านง่ายขึ้น
-3. เพิ่ม approval threshold settings ต่อ organization
+2. เก็บ deploy readiness และ security hardening ก่อนเปิด public test
+3. ปรับ audit log ให้แสดง diff ที่อ่านง่ายขึ้น
 4. ทำ filters/search สำหรับ customers/projects/transactions
-5. เพิ่ม summary กำไร/ขาดทุนและกราฟบน dashboard
-6. เพิ่ม action เชื่อมโยงกลับจาก project ไปหา quotation / survey มากขึ้น
-7. เพิ่ม member management ตาม role
+5. เพิ่ม summary กำไร/ขาดทุนและ analytics บน dashboard
+6. ต่อยอด member management ด้วย invite email, owner transfer, และ member audit log
+7. เพิ่ม transaction attachment management ให้ครบขึ้น
+8. เก็บ alignment ระหว่างเอกสารกับ implementation จริง
 
 ## Step-by-Step Execution Order
 
@@ -493,10 +648,20 @@ Suggested next phase:
 
 milestone นี้ถือว่าเสร็จเมื่อ:
 
-- login/register ยังทำงานได้
-- หลัง register ไปหน้า create organization
+- login/register/onboarding ยังทำงานได้
 - ผู้ใช้สร้าง organization แรกได้
 - route แบบ `/th/...` และ `/en/...` ใช้งานได้
-- dashboard ภายใต้ `/[locale]/org/[orgSlug]/dashboard` ใช้งานได้
-- มีโครงสร้างพร้อมต่อยอด customers/projects
+- dashboard, customers, projects, transactions ใช้งานได้
+- survey appointments และ quotations ใช้งานได้
+- project detail แสดง business linkage และ budget overview ได้
+- budget vs actual report ใช้งานได้
+- audit explorer ใช้งานได้
+- approvals workflow ใช้งานได้
+- organization settings สำหรับ approval threshold ใช้งานได้
 - `npm run lint` ผ่าน
+
+Known mismatches ที่ต้องเก็บในรอบถัดไป:
+
+- route plan บางส่วนยังเป็น `/new` ตามแผนเดิม แต่ implementation จริงใช้หน้า manager page เป็นหลัก
+- i18n plan เก่าเคยอ้าง `next-intl` แต่ implementation ปัจจุบันใช้ message modules แบบ `.ts`
+- deployment plan เดิมยังมอง SQLite แบบ local-first จึงต้องมี hosted database plan แยกสำหรับ environment ทดสอบจริง

@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { defaultLocale, isLocale } from "@/lib/locales";
+import { isSuperAdminAccess } from "@/lib/system-access";
 
-const authRoutes = new Set(["/login", "/register"]);
+const guestOnlyRoutes = new Set(["/login", "/register", "/forgot-password"]);
 const onboardingRoute = "/onboarding/create-organization";
+const adminRoute = "/admin";
 
 function getLocaleFromPathname(pathname: string) {
   const segment = pathname.split("/").filter(Boolean)[0];
@@ -19,7 +21,7 @@ function stripLocaleFromPathname(pathname: string, locale: string) {
   return pathname.replace(`/${locale}`, "") || "/";
 }
 
-export default auth((req) => {
+export const proxy = auth(async (req) => {
   if (req.nextUrl.pathname.startsWith("/api/")) {
     return;
   }
@@ -35,9 +37,12 @@ export default auth((req) => {
 
   const pathWithoutLocale = stripLocaleFromPathname(pathname, locale);
   const userId = req.auth?.user?.id;
+  const isInviteRoute = pathWithoutLocale.startsWith("/invite/");
+  const isResetPasswordRoute = pathWithoutLocale.startsWith("/reset-password/");
+  const isAdminRoute = pathWithoutLocale === adminRoute || pathWithoutLocale.startsWith(`${adminRoute}/`);
 
   if (!userId) {
-    if (authRoutes.has(pathWithoutLocale)) {
+    if (guestOnlyRoutes.has(pathWithoutLocale) || isInviteRoute || isResetPasswordRoute) {
       return;
     }
 
@@ -46,43 +51,98 @@ export default auth((req) => {
     return NextResponse.redirect(url);
   }
 
-  return prisma.membership
-    .findFirst({
-      where: { userId },
-      include: { organization: true },
-      orderBy: { createdAt: "asc" },
-    })
-    .then((membership) => {
-      const targetPath = membership
-        ? `/${locale}/org/${membership.organization.slug}/dashboard`
-        : `/${locale}${onboardingRoute}`;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      email: true,
+      systemRole: true,
+    },
+  });
+  const isSuperAdmin = user ? isSuperAdminAccess(user) : false;
 
-      if (pathWithoutLocale === "/") {
-        const url = req.nextUrl.clone();
-        url.pathname = targetPath;
-        return NextResponse.redirect(url);
-      }
+  if (isInviteRoute) {
+    return;
+  }
 
-      if (authRoutes.has(pathWithoutLocale)) {
-        const url = req.nextUrl.clone();
-        url.pathname = targetPath;
-        return NextResponse.redirect(url);
-      }
+  if (isAdminRoute) {
+    if (isSuperAdmin) {
+      return;
+    }
 
-      if (!membership && pathWithoutLocale !== onboardingRoute) {
-        const url = req.nextUrl.clone();
-        url.pathname = `/${locale}${onboardingRoute}`;
-        return NextResponse.redirect(url);
-      }
+    const fallbackUrl = req.nextUrl.clone();
+    fallbackUrl.pathname = `/${locale}`;
+    return NextResponse.redirect(fallbackUrl);
+  }
 
-      if (membership && pathWithoutLocale === onboardingRoute) {
-        const url = req.nextUrl.clone();
-        url.pathname = targetPath;
-        return NextResponse.redirect(url);
-      }
+  const preference = await prisma.userPreference.findUnique({
+    where: { userId },
+    select: { lastOrganizationId: true },
+  });
 
-      return undefined;
-    });
+  const membership = await prisma.membership.findFirst({
+    where: {
+      userId,
+      ...(preference?.lastOrganizationId
+        ? { organizationId: preference.lastOrganizationId }
+        : {}),
+    },
+    include: { organization: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const fallbackMembership = membership
+    ? null
+    : await prisma.membership.findFirst({
+        where: { userId },
+        include: { organization: true },
+        orderBy: { createdAt: "asc" },
+      });
+
+  const activeFallbackMembership = fallbackMembership?.organization.archivedAt ? null : fallbackMembership;
+  const activeMembership = membership?.organization.archivedAt ? null : membership;
+
+  const targetMembership = activeMembership ?? activeFallbackMembership;
+  const targetPath = targetMembership
+    ? `/${locale}/org/${targetMembership.organization.slug}/dashboard`
+    : isSuperAdmin
+      ? `/${locale}${adminRoute}`
+      : `/${locale}${onboardingRoute}`;
+
+  if (isSuperAdmin && pathWithoutLocale === adminRoute) {
+    return;
+  }
+
+  if (pathWithoutLocale === "/") {
+    const url = req.nextUrl.clone();
+    url.pathname = targetPath;
+    return NextResponse.redirect(url);
+  }
+
+  if (guestOnlyRoutes.has(pathWithoutLocale)) {
+    const url = req.nextUrl.clone();
+    url.pathname = targetPath;
+    return NextResponse.redirect(url);
+  }
+
+  if (!targetMembership && pathWithoutLocale !== onboardingRoute) {
+    const url = req.nextUrl.clone();
+    url.pathname = targetPath;
+    return NextResponse.redirect(url);
+  }
+
+  if (targetMembership && targetMembership.organization.archivedAt) {
+    const url = req.nextUrl.clone();
+    url.pathname = isSuperAdmin ? `/${locale}${adminRoute}` : `/${locale}${onboardingRoute}`;
+    return NextResponse.redirect(url);
+  }
+
+  if (targetMembership && pathWithoutLocale === onboardingRoute) {
+    const url = req.nextUrl.clone();
+    url.pathname = targetPath;
+    return NextResponse.redirect(url);
+  }
+
+  return undefined;
 });
 
 export const config = {

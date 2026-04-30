@@ -83,7 +83,7 @@ export async function PATCH(request: Request, { params }: Props) {
     const budgetCategory = budgetCategories.find((item) => item.id === budgetCategoryId);
     const amountDeltaInCents = Math.abs(plannedAmountInCents - existingLine.plannedAmountInCents);
 
-    if (shouldRequireBudgetApproval(membership.role, amountDeltaInCents)) {
+    if (shouldRequireBudgetApproval(membership.role, amountDeltaInCents, membership.organization.approvalThresholdInCents)) {
       const approvalRequest = await createApprovalRequest({
         organizationId: membership.organizationId,
         projectId,
@@ -212,7 +212,7 @@ export async function DELETE(_request: Request, { params }: Props) {
       select: { name: true },
     });
 
-    if (shouldRequireBudgetApproval(membership.role, existingLine.plannedAmountInCents)) {
+    if (shouldRequireBudgetApproval(membership.role, existingLine.plannedAmountInCents, membership.organization.approvalThresholdInCents)) {
       const approvalRequest = await createApprovalRequest({
         organizationId: membership.organizationId,
         projectId,

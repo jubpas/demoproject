@@ -11,6 +11,28 @@ type Props = {
   params: Promise<{ orgSlug: string }>;
 };
 
+function parseDate(value: string | null | undefined) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function parseTransactionType(value: string | null | undefined): TransactionType | undefined {
+  if (!value) return undefined;
+  if (Object.values(TransactionType).includes(value as TransactionType)) {
+    return value as TransactionType;
+  }
+  return undefined;
+}
+
+function parsePaymentStatusParam(value: string | null | undefined): PaymentStatus | undefined {
+  if (!value) return undefined;
+  if (Object.values(PaymentStatus).includes(value as PaymentStatus)) {
+    return value as PaymentStatus;
+  }
+  return undefined;
+}
+
 function parseAmountToCents(value: FormDataEntryValue | null) {
   if (typeof value !== "string") {
     return null;
@@ -32,6 +54,110 @@ function parsePaymentStatus(value: FormDataEntryValue | null) {
   return typeof value === "string" && value in PaymentStatus
     ? (value as PaymentStatus)
     : PaymentStatus.PAID;
+}
+
+export async function GET(request: Request, { params }: Props) {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { orgSlug } = await params;
+    const membership = await getMembershipByOrgSlug(userId, orgSlug);
+
+    if (!membership) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const search = typeof searchParams.get("search") === "string" ? searchParams.get("search")! : null;
+    const sortBy = (typeof searchParams.get("sortBy") === "string" ? searchParams.get("sortBy")! : "transactionDate") as
+      | "transactionDate"
+      | "amountInCents"
+      | "category";
+    const order = (typeof searchParams.get("order") === "string" ? searchParams.get("order")! : "desc") as "asc" | "desc";
+
+    const typeFilter = parseTransactionType(searchParams.get("type"));
+    const statusFilter = parsePaymentStatusParam(searchParams.get("paymentStatus"));
+    const categoryFilter = typeof searchParams.get("category") === "string" ? searchParams.get("category")!.trim() : null;
+    const projectIdFilter = typeof searchParams.get("projectId") === "string" && searchParams.get("projectId")?.trim()
+      ? searchParams.get("projectId")
+      : null;
+    const budgetCategoryIdFilter = typeof searchParams.get("budgetCategoryId") === "string" && searchParams.get("budgetCategoryId")?.trim()
+      ? searchParams.get("budgetCategoryId")
+      : null;
+    const from = parseDate(searchParams.get("from"));
+    const to = parseDate(searchParams.get("to"));
+
+    const where: {
+      organizationId: string;
+      type?: TransactionType;
+      paymentStatus?: PaymentStatus;
+      category?: { contains: string };
+      vendorName?: { contains: string };
+      description?: { contains: string };
+      projectId?: string | { not: null };
+      budgetCategoryId?: string;
+      transactionDate?: { gte?: Date; lte?: Date };
+    } = {
+      organizationId: membership.organizationId,
+    };
+
+    if (typeFilter) {
+      where.type = typeFilter;
+    }
+
+    if (statusFilter) {
+      where.paymentStatus = statusFilter;
+    }
+
+    if (categoryFilter) {
+      where.category = { contains: categoryFilter };
+    }
+
+    if (projectIdFilter) {
+      where.projectId = projectIdFilter;
+    }
+
+    if (budgetCategoryIdFilter) {
+      where.budgetCategoryId = budgetCategoryIdFilter;
+    }
+
+    if (from || to) {
+      where.transactionDate = {};
+      if (from) where.transactionDate.gte = from;
+      if (to) where.transactionDate.lte = to;
+    }
+
+    if (search) {
+      if (where.category) {
+        where.category.contains += ` ${search}`;
+      } else {
+        where.category = { contains: search };
+      }
+      where.vendorName = { contains: search };
+      where.description = { contains: search };
+    }
+
+    const transactions = await prisma.transaction.findMany({
+      where,
+      orderBy: { [sortBy]: order },
+      include: {
+        project: { select: { id: true, name: true, code: true } },
+        budgetCategory: { select: { id: true, name: true, colorToken: true } },
+        attachments: { select: { id: true, fileName: true, filePath: true, fileType: true, fileSize: true } },
+        createdBy: { select: { id: true, name: true, email: true } },
+      },
+    });
+
+    return NextResponse.json({ transactions });
+  } catch (error) {
+    console.error("List transactions error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request, { params }: Props) {

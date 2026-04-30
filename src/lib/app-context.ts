@@ -7,6 +7,7 @@ import prisma from "@/lib/db";
 import type { Locale } from "@/lib/locales";
 import { isLocale, withLocale } from "@/lib/locales";
 import { getMembershipByOrgSlug } from "@/lib/organization";
+import { isSuperAdminAccess } from "@/lib/system-access";
 
 export async function requireLocale(value: string) {
   if (!isLocale(value)) {
@@ -24,16 +25,37 @@ export const getCurrentUser = cache(async () => {
     return null;
   }
 
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      systemRole: true,
+    },
+  });
+
+  if (!user) {
+    return null;
+  }
+
   return {
-    id: userId,
-    email: session.user?.email ?? "",
-    name: session.user?.name ?? null,
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    systemRole: user.systemRole,
+    isSuperAdmin: isSuperAdminAccess(user),
   };
 });
 
 export const getUserOrganizations = cache(async (userId: string) => {
   return prisma.membership.findMany({
-    where: { userId },
+    where: {
+      userId,
+      organization: {
+        archivedAt: null,
+      },
+    },
     include: { organization: true },
     orderBy: { createdAt: "asc" },
   });
@@ -54,6 +76,10 @@ export async function getHomeRedirectPath(locale: Locale) {
   const memberships = await getUserOrganizations(user.id);
 
   if (memberships.length === 0) {
+    if (user.isSuperAdmin) {
+      return withLocale(locale, "/admin");
+    }
+
     return withLocale(locale, "/onboarding/create-organization");
   }
 
@@ -78,7 +104,35 @@ export async function requireOrganizationAccess(locale: Locale, orgSlug: string)
 
   const membership = await getMembershipByOrgSlug(user.id, orgSlug);
 
+  if (!membership && user.isSuperAdmin) {
+    const organization = await prisma.organization.findUnique({
+      where: { slug: orgSlug },
+    });
+
+    if (!organization) {
+      notFound();
+    }
+
+    return {
+      user,
+      membership: {
+        id: `super-admin:${organization.id}`,
+        userId: user.id,
+        organizationId: organization.id,
+        role: "OWNER" as const,
+        createdAt: organization.createdAt,
+        updatedAt: organization.updatedAt,
+        organization,
+      },
+      organization,
+    };
+  }
+
   if (!membership) {
+    redirect(await getHomeRedirectPath(locale));
+  }
+
+  if (membership.organization.archivedAt && !user.isSuperAdmin) {
     redirect(await getHomeRedirectPath(locale));
   }
 
@@ -87,4 +141,18 @@ export async function requireOrganizationAccess(locale: Locale, orgSlug: string)
     membership,
     organization: membership.organization,
   };
+}
+
+export async function requireSuperAdmin(locale: Locale) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect(withLocale(locale, "/login"));
+  }
+
+  if (!user.isSuperAdmin) {
+    redirect(await getHomeRedirectPath(locale));
+  }
+
+  return user;
 }

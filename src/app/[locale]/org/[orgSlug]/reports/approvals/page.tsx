@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { BUDGET_APPROVAL_THRESHOLD_IN_CENTS } from "@/lib/approvals";
 import prisma from "@/lib/db";
 import { ApprovalRequestManager } from "@/components/org/approval-request-manager";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -73,7 +72,7 @@ export default async function ApprovalsPage({ params }: Props) {
         locale={validLocale}
         orgSlug={orgSlug}
         canApprove={canApproveBudgetRequests(membership.role)}
-        thresholdInCents={BUDGET_APPROVAL_THRESHOLD_IN_CENTS}
+        thresholdInCents={organization.approvalThresholdInCents}
         pendingRequests={pendingRequests.map((item) => ({
           id: item.id,
           status: item.status,
