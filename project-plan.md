@@ -272,11 +272,12 @@ OrganizationSubscription belongs-to SubscriptionPlan
 
 ธีมหลัก:
 
-- น้ำเงินเข้มเป็น primary
-- แดงใช้กับ action สำคัญและ accent
-- รองรับมือถือ 100%
-- auth pages ใช้ modern gradient + glassmorphism
-- app pages ใช้ dashboard layout ที่อ่านง่ายและใช้งานได้จริง
+- ใช้ `DESIGN.md` เป็น design source of truth สำหรับงาน UI ทุกครั้ง
+- ปัจจุบัน app pages ยังเป็น light admin dashboard ให้ preserve UX เดิม แล้วค่อยนำ principle จาก `DESIGN.md` มายกระดับแบบ incremental
+- ใช้ blue accent อย่างระมัดระวังกับ CTA, focus state, highlight และ spotlight เฉพาะบาง section
+- หลีกเลี่ยงการ redesign ทั้งระบบเป็น dark theme เว้นแต่มีคำสั่งชัดเจน
+- รองรับมือถือ 100% โดยให้ table-heavy surfaces fallback เป็น cards หรือ stacked sections
+- auth pages ใช้ modern gradient/glassmorphism ได้ แต่ app pages ต้องอ่านง่ายและใช้งานจริงก่อน
 
 ## Receipt Upload Plan
 
@@ -404,27 +405,64 @@ Remaining:
 
 ### Phase 11: Reporting And Auditing
 
-Status: Partial
+Status: Done
 
 Completed:
 
 - ✅ สร้าง budget vs actual report
+- ✅ สร้าง profit/loss report ระดับองค์กร พร้อม filter ตามช่วงเวลา โครงการ และประเภทธุรกรรม
 - ✅ เพิ่ม audit log สำหรับข้อมูลสำคัญ
+- ✅ ปรับ audit diff ให้แสดงผลอ่านง่ายขึ้น พร้อม fallback raw JSON
 - ✅ เพิ่ม approval workflow สำหรับ budget change
 - ✅ เพิ่ม organization-level approval threshold settings
 
 Remaining:
 
-- สร้าง profit/loss report ระดับโครงการหรือระดับองค์กร
-- ปรับ audit diff ให้แสดงผลอ่านง่ายขึ้น
 - ต่อยอด reporting/auditing สำหรับ production usage
+- เพิ่ม export CSV/PDF ใน phase ถัดไป
 
 1. ✅ สร้าง budget vs actual report
-2. สร้าง profit/loss report ระดับโครงการ
+2. ✅ สร้าง profit/loss report ระดับองค์กร
 3. ✅ เพิ่ม audit log สำหรับข้อมูลสำคัญ
 4. ✅ เพิ่ม approval workflow สำหรับ budget change
 5. ✅ เพิ่ม organization-level approval threshold settings
-6. ปรับ audit diff ให้แสดงผลอ่านง่ายขึ้น
+6. ✅ ปรับ audit diff ให้แสดงผลอ่านง่ายขึ้น
+
+### Phase 12: Project Tasks And Schedule
+
+Status: Done
+
+Completed:
+
+- ✅ เพิ่ม `ProjectTask` สำหรับ task ในระดับ project
+- ✅ เพิ่ม task CRUD พร้อม authorization และ audit log
+- ✅ เพิ่มหน้า `projects/[projectId]/tasks` พร้อม filters ตาม keyword, status, priority, assignee
+- ✅ เพิ่ม overdue highlight และ progress bar
+- ✅ เพิ่มหน้า `projects/[projectId]/schedule` แบบ read-only timeline
+- ✅ ปรับ schedule chart ตาม `DESIGN.md` แบบ incremental โดยไม่ redesign ทั้งระบบ
+- ✅ ผูก task/schedule summary และ shortcuts เข้าหน้า project detail
+
+Remaining:
+
+- เพิ่ม task dependency / drag timeline / notification ใน phase ถัดไปถ้ามีความจำเป็นจริง
+
+### Phase 13: Product Polish
+
+Status: Partial
+
+Completed:
+
+- ✅ Dashboard workload pulse สำหรับงานค้าง งานเกินกำหนด และนัดหมายใกล้ถึง
+- ✅ Dashboard project health snapshot, over-budget metric และ recent audit activity feed
+- ✅ Filters ใน Projects ตาม keyword, status, customer
+- ✅ Filters ใน Transactions ตาม keyword, type, payment status, project, budget category
+- ✅ UI alignment rule ให้ทุกงาน UI อ้าง `DESIGN.md`
+
+Remaining:
+
+- เก็บ Customer/Survey Appointment/Quotation flow polish
+- เพิ่ม filters/search ใน Quotation และ Survey Appointment ถ้ายังไม่ครบ
+- เพิ่ม member audit และ owner transfer flow
 
 ## Quotation Plan
 
@@ -582,9 +620,15 @@ Completed in current round:
 - เพิ่มหน้า `settings` ระดับองค์กรสำหรับตั้งค่า approval threshold
 - เพิ่ม `approvalThresholdInCents` ใน Organization และเชื่อม approval logic ให้ใช้ค่าจากองค์กร
 - เพิ่ม dashboard summary cards, quick actions, และ recent transactions
+- เพิ่ม dashboard workload pulse, project health snapshot และ recent activity feed จาก audit log
 - เพิ่ม cost accounting foundation บางส่วนผ่าน `paymentStatus`, `vendorName`, `referenceNumber`, และ `budgetCategory`
 - แก้ settings form ให้ submit เข้า `/api/org/[orgSlug]/settings` และ route handler แปลงค่าบาทเป็น cents ก่อนบันทึก
 - แก้หน้า `reports/approvals` ให้แสดง threshold จาก organization จริง
+- เพิ่ม `ProjectTask` พร้อม task CRUD, audit log, overdue logic และ schedule page แบบ read-only
+- เพิ่ม Task/Schedule polish: task filters, overdue highlight, schedule summary และ timeline readability
+- เพิ่ม Profit/Loss Reporting ในหน้า `reports` พร้อม filter ตามวันที่ โครงการ และประเภทธุรกรรม
+- เพิ่ม Audit readable diff ใน `reports/audit` แทนการอ่าน JSON ดิบเป็นหลัก
+- เพิ่ม filters ใน Projects และ Transactions พร้อม count และ clear filters
 
 Current implemented routes:
 
@@ -593,6 +637,8 @@ Current implemented routes:
 /th/org/[orgSlug]/customers
 /th/org/[orgSlug]/projects
 /th/org/[orgSlug]/projects/[projectId]
+/th/org/[orgSlug]/projects/[projectId]/tasks
+/th/org/[orgSlug]/projects/[projectId]/schedule
 /th/org/[orgSlug]/transactions
 /th/org/[orgSlug]/survey-appointments
 /th/org/[orgSlug]/quotations
@@ -606,6 +652,8 @@ Current implemented routes:
 /en/org/[orgSlug]/customers
 /en/org/[orgSlug]/projects
 /en/org/[orgSlug]/projects/[projectId]
+/en/org/[orgSlug]/projects/[projectId]/tasks
+/en/org/[orgSlug]/projects/[projectId]/schedule
 /en/org/[orgSlug]/transactions
 /en/org/[orgSlug]/survey-appointments
 /en/org/[orgSlug]/quotations
@@ -618,14 +666,13 @@ Current implemented routes:
 
 Suggested next phase:
 
-1. ทำรายงาน profit/loss ระดับองค์กรและระดับโครงการ
-2. เก็บ deploy readiness และ security hardening ก่อนเปิด public test
-3. ปรับ audit log ให้แสดง diff ที่อ่านง่ายขึ้น
-4. ทำ filters/search สำหรับ customers/projects/transactions
-5. เพิ่ม summary กำไร/ขาดทุนและ analytics บน dashboard
-6. ต่อยอด member management ด้วย invite email, owner transfer, และ member audit log
-7. เพิ่ม transaction attachment management ให้ครบขึ้น
-8. เก็บ alignment ระหว่างเอกสารกับ implementation จริง
+1. เก็บ Customer/Survey Appointment/Quotation flow polish ให้ลื่นขึ้น
+2. เพิ่ม filters/search ใน Quotation และ Survey Appointment ถ้ายังไม่ครบ
+3. ต่อยอด member management ด้วย invite email, owner transfer, และ member audit log
+4. เพิ่ม transaction attachment management ให้ครบขึ้น
+5. เก็บ cost accounting expansion เช่น payable/receivable และ vendor master
+6. เก็บ deploy readiness และ security hardening หลัง core flow เรียบร้อยกว่าเดิม
+7. เก็บ alignment ระหว่างเอกสารกับ implementation จริงต่อเนื่อง
 
 ## Step-by-Step Execution Order
 
@@ -658,6 +705,10 @@ milestone นี้ถือว่าเสร็จเมื่อ:
 - audit explorer ใช้งานได้
 - approvals workflow ใช้งานได้
 - organization settings สำหรับ approval threshold ใช้งานได้
+- project tasks และ schedule page ใช้งานได้
+- profit/loss report ใช้งานได้
+- audit explorer แสดง diff อ่านง่ายได้
+- dashboard มี workload และ project health analytics เบื้องต้น
 - `npm run lint` ผ่าน
 
 Known mismatches ที่ต้องเก็บในรอบถัดไป:

@@ -23,6 +23,7 @@ type ProjectTaskItem = {
   endDate: string | null;
   progressPercent: number;
   completedAt: string | null;
+  isOverdue: boolean;
 };
 
 type TaskForm = {
@@ -175,21 +176,40 @@ export function ProjectTaskManager({ locale, orgSlug, projectId, projectName, ta
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingForm, setEditingForm] = useState<TaskForm>(emptyForm);
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<TaskStatus | "ALL">("ALL");
+  const [priorityFilter, setPriorityFilter] = useState<TaskPriority | "ALL">("ALL");
+  const [assigneeFilter, setAssigneeFilter] = useState("ALL");
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   const statusOptions = getStatusOptions(copy);
+  const priorityOptions = getPriorityOptions(copy);
   const statusMap = Object.fromEntries(statusOptions.map((item) => [item.value, item])) as Record<TaskStatus, (typeof statusOptions)[number]>;
-  const priorityMap = Object.fromEntries(getPriorityOptions(copy).map((item) => [item.value, item.label])) as Record<TaskPriority, string>;
+  const priorityMap = Object.fromEntries(priorityOptions.map((item) => [item.value, item.label])) as Record<TaskPriority, string>;
   const dateFormatter = new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { dateStyle: "medium" });
+  const openTaskCount = tasks.filter((task) => task.status !== "DONE" && task.status !== "CANCELLED").length;
+  const overdueTaskCount = tasks.filter((task) => task.isOverdue).length;
+  const completedTaskCount = tasks.filter((task) => task.status === "DONE").length;
 
   const filteredTasks = useMemo(() => {
     const keyword = query.trim().toLowerCase();
-    if (!keyword) return tasks;
-    return tasks.filter((task) => [task.title, task.description, task.assignedToName].filter(Boolean).join(" ").toLowerCase().includes(keyword));
-  }, [tasks, query]);
+    return tasks.filter((task) => {
+      const matchesKeyword = keyword ? [task.title, task.description, task.assignedToName].filter(Boolean).join(" ").toLowerCase().includes(keyword) : true;
+      const matchesStatus = statusFilter === "ALL" || task.status === statusFilter;
+      const matchesPriority = priorityFilter === "ALL" || task.priority === priorityFilter;
+      const matchesAssignee = assigneeFilter === "ALL" || (assigneeFilter === "UNASSIGNED" ? !task.assignedToId : task.assignedToId === assigneeFilter);
+      return matchesKeyword && matchesStatus && matchesPriority && matchesAssignee;
+    });
+  }, [tasks, query, statusFilter, priorityFilter, assigneeFilter]);
+
+  function clearFilters() {
+    setQuery("");
+    setStatusFilter("ALL");
+    setPriorityFilter("ALL");
+    setAssigneeFilter("ALL");
+  }
 
   function updateForm(field: keyof TaskForm, value: string) {
     setForm((current) => ({ ...current, [field]: value as TaskForm[keyof TaskForm] }));
@@ -274,6 +294,20 @@ export function ProjectTaskManager({ locale, orgSlug, projectId, projectName, ta
   return (
     <div className="space-y-6">
       <PageHeader title={copy.projects.tasksTitle} description={`${projectName} · ${copy.projects.tasksSubtitle}`} />
+      <section className="grid gap-3 md:grid-cols-3">
+        <div className="rounded-3xl border border-blue-100 bg-blue-50/80 p-5">
+          <p className="text-sm font-medium text-blue-700">{copy.projects.openTasks}</p>
+          <p className="mt-2 text-3xl font-semibold text-blue-950">{openTaskCount}</p>
+        </div>
+        <div className="rounded-3xl border border-red-100 bg-red-50/80 p-5">
+          <p className="text-sm font-medium text-red-700">{copy.projects.overdueTasks}</p>
+          <p className="mt-2 text-3xl font-semibold text-red-950">{overdueTaskCount}</p>
+        </div>
+        <div className="rounded-3xl border border-emerald-100 bg-emerald-50/80 p-5">
+          <p className="text-sm font-medium text-emerald-700">{copy.projects.completedTasks}</p>
+          <p className="mt-2 text-3xl font-semibold text-emerald-950">{completedTaskCount}</p>
+        </div>
+      </section>
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <DataPanel title={copy.projects.taskCreateTitle}>
           <div className="space-y-4">
@@ -286,7 +320,26 @@ export function ProjectTaskManager({ locale, orgSlug, projectId, projectName, ta
           </div>
         </DataPanel>
 
-        <DataPanel title={copy.projects.taskListTitle} actions={<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.projects.searchTasksPlaceholder} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" />}>
+        <DataPanel title={copy.projects.taskListTitle} actions={<span className="text-xs font-medium text-slate-500">{filteredTasks.length}/{tasks.length}</span>}>
+          <div className="mb-4 grid gap-3 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_auto]">
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.projects.searchTasksPlaceholder} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" />
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as TaskStatus | "ALL")} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+              <option value="ALL">{copy.projects.allStatuses}</option>
+              {statusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+            </select>
+            <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value as TaskPriority | "ALL")} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+              <option value="ALL">{copy.projects.allPriorities}</option>
+              {priorityOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+            </select>
+            <select value={assigneeFilter} onChange={(event) => setAssigneeFilter(event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+              <option value="ALL">{copy.projects.allAssignees}</option>
+              <option value="UNASSIGNED">{copy.projects.noAssignee}</option>
+              {members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}
+            </select>
+            <button type="button" onClick={clearFilters} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-white">
+              {copy.projects.clearFilters}
+            </button>
+          </div>
           {filteredTasks.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm text-slate-500">{copy.projects.noTasks}</div>
           ) : (
@@ -294,9 +347,10 @@ export function ProjectTaskManager({ locale, orgSlug, projectId, projectName, ta
               {filteredTasks.map((task) => {
                 const isEditing = editingId === task.id;
                 const status = statusMap[task.status];
+                const progressBarClassName = task.isOverdue ? "bg-red-500" : task.status === "DONE" ? "bg-emerald-500" : "bg-blue-500";
 
                 return (
-                  <div key={task.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div key={task.id} className={`rounded-2xl border p-4 ${task.isOverdue ? "border-red-200 bg-red-50" : "border-slate-200 bg-slate-50"}`}>
                     {isEditing ? (
                       <div className="space-y-4">
                         <TaskFields form={editingForm} members={members} copy={copy} onChange={updateEditingForm} />
@@ -309,7 +363,10 @@ export function ProjectTaskManager({ locale, orgSlug, projectId, projectName, ta
                       <div className="space-y-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div>
-                            <p className="font-semibold text-slate-950">{task.title}</p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="font-semibold text-slate-950">{task.title}</p>
+                              {task.isOverdue ? <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">{copy.projects.overdueTasks}</span> : null}
+                            </div>
                             <p className="mt-1 text-sm text-slate-500">{task.assignedToName || copy.projects.noAssignee} · {priorityMap[task.priority]}</p>
                           </div>
                           <StatusBadge label={status.label} tone={status.tone} />
@@ -319,6 +376,9 @@ export function ProjectTaskManager({ locale, orgSlug, projectId, projectName, ta
                           <p>{copy.projects.dueDate}: {formatDate(task.dueDate)}</p>
                           <p>{copy.projects.endDate}: {formatDate(task.endDate)}</p>
                           <p>{copy.projects.progress}: {task.progressPercent}%</p>
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-white ring-1 ring-slate-200">
+                          <div className={`h-full rounded-full ${progressBarClassName}`} style={{ width: `${task.progressPercent}%` }} />
                         </div>
                         {task.description ? <p className="text-sm text-slate-600">{task.description}</p> : null}
                         <div className="flex flex-wrap gap-2">

@@ -32,12 +32,74 @@ function parseDateBoundary(value: string, endOfDay: boolean) {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
+type AuditValue = string | number | boolean | null;
+
 function truncateJson(value: string | null) {
   if (!value) {
     return null;
   }
 
   return value.length > 160 ? `${value.slice(0, 160)}...` : value;
+}
+
+function parseAuditJson(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as Record<string, unknown>;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function isDisplayableValue(value: unknown): value is AuditValue {
+  return value === null || ["string", "number", "boolean"].includes(typeof value);
+}
+
+function formatAuditValue(value: unknown, fallback: string) {
+  if (value === null || value === undefined || value === "") {
+    return fallback;
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "true" : "false";
+  }
+
+  if (typeof value === "number") {
+    return String(value);
+  }
+
+  if (typeof value === "string") {
+    const date = value.length >= 20 ? new Date(value) : null;
+    if (date && !Number.isNaN(date.getTime()) && value.includes("T")) {
+      return value.slice(0, 16).replace("T", " ");
+    }
+    return value.length > 96 ? `${value.slice(0, 96)}...` : value;
+  }
+
+  return fallback;
+}
+
+function getReadableDiff(beforeJson: string | null, afterJson: string | null) {
+  const before = parseAuditJson(beforeJson);
+  const after = parseAuditJson(afterJson);
+  const keys = Array.from(new Set([...Object.keys(before ?? {}), ...Object.keys(after ?? {})]))
+    .filter((key) => !["id", "organizationId", "projectId", "createdById", "createdAt", "updatedAt"].includes(key));
+
+  return keys
+    .map((key) => {
+      const beforeValue = before?.[key];
+      const afterValue = after?.[key];
+      if (!isDisplayableValue(beforeValue) && beforeValue !== undefined) return null;
+      if (!isDisplayableValue(afterValue) && afterValue !== undefined) return null;
+      if (JSON.stringify(beforeValue ?? null) === JSON.stringify(afterValue ?? null)) return null;
+      return { field: key, beforeValue, afterValue };
+    })
+    .filter(Boolean)
+    .slice(0, 8) as Array<{ field: string; beforeValue: unknown; afterValue: unknown }>;
 }
 
 export default async function AuditExplorerPage({ params, searchParams }: Props) {
@@ -191,6 +253,7 @@ export default async function AuditExplorerPage({ params, searchParams }: Props)
           <div className="space-y-4">
             {auditLogs.map((log) => {
               const actionTone = log.action === "DELETE" ? "red" : log.action === "UPDATE" ? "amber" : "green";
+              const readableDiff = getReadableDiff(log.beforeJson, log.afterJson);
 
               return (
                 <div key={log.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -206,16 +269,35 @@ export default async function AuditExplorerPage({ params, searchParams }: Props)
                     </div>
                     <p className="text-xs text-slate-500">{log.createdAt.toISOString().slice(0, 16).replace("T", " ")}</p>
                   </div>
-                  <div className="mt-4 grid gap-3 xl:grid-cols-2">
-                    <div className="rounded-2xl border border-slate-200 bg-white p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{messages.reports.before}</p>
-                      <p className="mt-2 break-all font-mono text-xs text-slate-600">{truncateJson(log.beforeJson) || messages.common.noData}</p>
+                  {readableDiff.length > 0 ? (
+                    <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                      <div className="grid grid-cols-[1fr_1fr_1fr] border-b border-slate-200 bg-slate-100 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <span>{messages.reports.field}</span>
+                        <span>{messages.reports.before}</span>
+                        <span>{messages.reports.after}</span>
+                      </div>
+                      <div className="divide-y divide-slate-100">
+                        {readableDiff.map((item) => (
+                          <div key={item.field} className="grid gap-3 px-4 py-3 text-sm text-slate-700 md:grid-cols-[1fr_1fr_1fr]">
+                            <p className="font-medium text-slate-950">{item.field}</p>
+                            <p className="break-words text-slate-500">{formatAuditValue(item.beforeValue, messages.common.noData)}</p>
+                            <p className="break-words font-medium text-slate-950">{formatAuditValue(item.afterValue, messages.common.noData)}</p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{messages.reports.after}</p>
-                      <p className="mt-2 break-all font-mono text-xs text-slate-600">{truncateJson(log.afterJson) || messages.common.noData}</p>
+                  ) : (
+                    <div className="mt-4 grid gap-3 xl:grid-cols-2">
+                      <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{messages.reports.rawBefore}</p>
+                        <p className="mt-2 break-all font-mono text-xs text-slate-600">{truncateJson(log.beforeJson) || messages.common.noData}</p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{messages.reports.rawAfter}</p>
+                        <p className="mt-2 break-all font-mono text-xs text-slate-600">{truncateJson(log.afterJson) || messages.common.noData}</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               );
             })}

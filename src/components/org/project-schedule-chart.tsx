@@ -1,4 +1,5 @@
 import type { TaskPriority, TaskStatus, SurveyAppointmentStatus } from "@prisma/client";
+import { StatusBadge } from "@/components/dashboard/status-badge";
 
 type ScheduleTask = {
   id: string;
@@ -62,6 +63,33 @@ function getSpanPercent(start: Date, end: Date, rangeStart: Date, totalDays: num
   };
 }
 
+function getTaskTone(status: TaskStatus) {
+  if (status === "DONE") return "green" as const;
+  if (status === "BLOCKED") return "amber" as const;
+  if (status === "CANCELLED") return "red" as const;
+  if (status === "IN_PROGRESS") return "blue" as const;
+  return "slate" as const;
+}
+
+function getTaskBarClassName(status: TaskStatus, priority: TaskPriority) {
+  if (status === "DONE") return "bg-emerald-500";
+  if (status === "BLOCKED" || priority === "URGENT") return "bg-red-500";
+  if (priority === "HIGH") return "bg-amber-500";
+  if (status === "IN_PROGRESS") return "bg-blue-500";
+  return "bg-slate-500";
+}
+
+function getTaskStatusLabel(status: TaskStatus, copy: Props["copy"]) {
+  const labels: Record<TaskStatus, string> = {
+    TODO: copy.projects.taskTodo,
+    IN_PROGRESS: copy.projects.taskInProgress,
+    BLOCKED: copy.projects.taskBlocked,
+    DONE: copy.projects.taskDone,
+    CANCELLED: copy.projects.taskCancelled,
+  };
+  return labels[status];
+}
+
 export function ProjectScheduleChart({ locale, project, tasks, appointments, copy }: Props) {
   const formatter = new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { day: "2-digit", month: "short" });
   const datedTasks = tasks
@@ -92,20 +120,39 @@ export function ProjectScheduleChart({ locale, project, tasks, appointments, cop
   const ticks = Array.from({ length: tickCount }, (_, index) => addDays(rangeStart, Math.round((index / Math.max(1, tickCount - 1)) * (totalDays - 1))));
   const today = startOfDay(new Date());
   const showToday = today >= rangeStart && today <= rangeEnd;
+  const scheduledItemCount = datedTasks.length + datedAppointments.length;
 
   return (
     <div className="space-y-5">
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 p-5 text-white">
+        <div className="absolute right-8 top-0 h-32 w-32 rounded-full bg-blue-600/30 blur-3xl" />
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-500">{copy.projects.scheduleRange}</p>
-            <p className="mt-1 text-lg font-semibold text-slate-950">{formatter.format(rangeStart)} - {formatter.format(rangeEnd)}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">{copy.projects.scheduleRange}</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-white">{formatter.format(rangeStart)} - {formatter.format(rangeEnd)}</p>
+            <p className="mt-2 text-sm text-slate-300">{project.name}</p>
           </div>
-          <div className="flex flex-wrap gap-3 text-xs text-slate-600">
-            <span className="inline-flex items-center gap-2"><span className="h-2 w-8 rounded-full bg-blue-500" />{copy.projects.scheduleTaskBar}</span>
-            <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-red-500" />{copy.projects.scheduleMilestone}</span>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3">
+              <p className="text-xs text-slate-400">{copy.projects.scheduleTasks}</p>
+              <p className="mt-1 text-xl font-semibold">{datedTasks.length}</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3">
+              <p className="text-xs text-slate-400">{copy.projects.scheduleAppointments}</p>
+              <p className="mt-1 text-xl font-semibold">{datedAppointments.length}</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3">
+              <p className="text-xs text-slate-400">{copy.projects.scheduleItems}</p>
+              <p className="mt-1 text-xl font-semibold">{scheduledItemCount}</p>
+            </div>
           </div>
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600">
+        <span className="inline-flex items-center gap-2"><span className="h-2 w-8 rounded-full bg-blue-500" />{copy.projects.scheduleTaskBar}</span>
+        <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-red-500" />{copy.projects.scheduleMilestone}</span>
+        <span className="inline-flex items-center gap-2"><span className="h-4 border-l border-red-400" />{copy.projects.today}</span>
       </div>
 
       <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -115,19 +162,29 @@ export function ProjectScheduleChart({ locale, project, tasks, appointments, cop
               const left = `${Math.max(0, Math.round((tick.getTime() - rangeStart.getTime()) / dayInMs)) / totalDays * 100}%`;
               return <span key={tick.toISOString()} className="absolute top-0 -translate-x-1/2" style={{ left }}>{formatter.format(tick)}</span>;
             })}
-            {showToday ? <span className="absolute top-0 h-full border-l border-red-400" style={{ left: `${Math.round((today.getTime() - rangeStart.getTime()) / dayInMs) / totalDays * 100}%` }} /> : null}
+            {showToday ? (
+              <span className="absolute top-0 h-full border-l border-red-400" style={{ left: `${Math.round((today.getTime() - rangeStart.getTime()) / dayInMs) / totalDays * 100}%` }}>
+                <span className="absolute -top-1 ml-2 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-600 ring-1 ring-red-100">{copy.projects.today}</span>
+              </span>
+            ) : null}
           </div>
 
           {datedTasks.map((task) => {
             const span = getSpanPercent(task.start <= task.end ? task.start : task.end, task.end >= task.start ? task.end : task.start, rangeStart, totalDays);
+            const taskBarClassName = getTaskBarClassName(task.status, task.priority);
             return (
               <div key={task.id} className="grid grid-cols-[13rem_1fr] items-center gap-4">
                 <div>
-                  <p className="truncate text-sm font-semibold text-slate-950">{task.title}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-semibold text-slate-950">{task.title}</p>
+                    <StatusBadge label={getTaskStatusLabel(task.status, copy)} tone={getTaskTone(task.status)} />
+                  </div>
                   <p className="mt-1 truncate text-xs text-slate-500">{task.assignedToName || copy.projects.noAssignee} · {task.progressPercent}%</p>
                 </div>
-                <div className="relative h-9 rounded-2xl bg-slate-100">
-                  <div className="absolute top-2 h-5 rounded-full bg-blue-500" style={span} />
+                <div className="relative h-9 overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-slate-200">
+                  <div className={`absolute top-2 h-5 rounded-full ${taskBarClassName}`} style={span}>
+                    <span className="absolute inset-y-0 left-0 rounded-full bg-white/25" style={{ width: `${task.progressPercent}%` }} />
+                  </div>
                 </div>
               </div>
             );

@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .opencode
+
+# generated design import output; canonical design guide lives at /DESIGN.md
+/composio/

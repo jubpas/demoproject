@@ -99,6 +99,12 @@ type Props = {
       paid: string;
       partiallyPaid: string;
       cancelled: string;
+      allTypes: string;
+      allPaymentStatuses: string;
+      allProjects: string;
+      allBudgetCategories: string;
+      clearFilters: string;
+      searchTransactionsPlaceholder: string;
     };
   };
 };
@@ -192,6 +198,10 @@ export function TransactionManager({ locale, orgSlug, transactions, projects, bu
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [query, setQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<TransactionType | "ALL">("ALL");
+  const [paymentFilter, setPaymentFilter] = useState<PaymentStatus | "ALL">("ALL");
+  const [projectFilter, setProjectFilter] = useState("ALL");
+  const [budgetCategoryFilter, setBudgetCategoryFilter] = useState("ALL");
 
   const moneyFormatter = new Intl.NumberFormat(locale === "th" ? "th-TH" : "en-US", {
     minimumFractionDigits: 2,
@@ -200,18 +210,27 @@ export function TransactionManager({ locale, orgSlug, transactions, projects, bu
 
   const filteredTransactions = useMemo(() => {
     const keyword = query.trim().toLowerCase();
-    if (!keyword) {
-      return transactions;
-    }
-
-    return transactions.filter((transaction) =>
-      [transaction.category, transaction.projectName, transaction.description]
+    return transactions.filter((transaction) => {
+      const matchesKeyword = keyword ? [transaction.category, transaction.projectName, transaction.description, transaction.vendorName, transaction.referenceNumber]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
-        .includes(keyword),
-    );
-  }, [transactions, query]);
+        .includes(keyword) : true;
+      const matchesType = typeFilter === "ALL" || transaction.type === typeFilter;
+      const matchesPayment = paymentFilter === "ALL" || transaction.paymentStatus === paymentFilter;
+      const matchesProject = projectFilter === "ALL" || (projectFilter === "NONE" ? !transaction.projectId : transaction.projectId === projectFilter);
+      const matchesBudgetCategory = budgetCategoryFilter === "ALL" || (budgetCategoryFilter === "NONE" ? !transaction.budgetCategoryId : transaction.budgetCategoryId === budgetCategoryFilter);
+      return matchesKeyword && matchesType && matchesPayment && matchesProject && matchesBudgetCategory;
+    });
+  }, [transactions, query, typeFilter, paymentFilter, projectFilter, budgetCategoryFilter]);
+
+  function clearFilters() {
+    setQuery("");
+    setTypeFilter("ALL");
+    setPaymentFilter("ALL");
+    setProjectFilter("ALL");
+    setBudgetCategoryFilter("ALL");
+  }
 
   const incomeTotal = transactions
     .filter((item) => item.type === "INCOME")
@@ -394,7 +413,33 @@ export function TransactionManager({ locale, orgSlug, transactions, projects, bu
           </div>
         </DataPanel>
 
-        <DataPanel title={copy.transactions.listTitle} actions={<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search transaction" className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" />}>
+        <DataPanel title={copy.transactions.listTitle} actions={<span className="text-xs font-medium text-slate-500">{filteredTransactions.length}/{transactions.length}</span>}>
+          <div className="mb-4 grid gap-3 lg:grid-cols-[1.2fr_0.7fr_0.8fr_0.8fr_0.8fr_auto]">
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.transactions.searchTransactionsPlaceholder} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" />
+            <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as TransactionType | "ALL")} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+              <option value="ALL">{copy.transactions.allTypes}</option>
+              <option value="INCOME">{copy.transactions.income}</option>
+              <option value="EXPENSE">{copy.transactions.expense}</option>
+            </select>
+            <select value={paymentFilter} onChange={(event) => setPaymentFilter(event.target.value as PaymentStatus | "ALL")} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+              <option value="ALL">{copy.transactions.allPaymentStatuses}</option>
+              <option value="PENDING">{copy.transactions.pending}</option>
+              <option value="PAID">{copy.transactions.paid}</option>
+              <option value="PARTIALLY_PAID">{copy.transactions.partiallyPaid}</option>
+              <option value="CANCELLED">{copy.transactions.cancelled}</option>
+            </select>
+            <select value={projectFilter} onChange={(event) => setProjectFilter(event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+              <option value="ALL">{copy.transactions.allProjects}</option>
+              <option value="NONE">{copy.transactions.noProject}</option>
+              {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+            </select>
+            <select value={budgetCategoryFilter} onChange={(event) => setBudgetCategoryFilter(event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+              <option value="ALL">{copy.transactions.allBudgetCategories}</option>
+              <option value="NONE">{copy.transactions.noBudgetCategory}</option>
+              {budgetCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+            </select>
+            <button type="button" onClick={clearFilters} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-white">{copy.transactions.clearFilters}</button>
+          </div>
           {filteredTransactions.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center">
               <p className="text-lg font-medium text-slate-900">{copy.transactions.emptyTitle}</p>

@@ -4,6 +4,7 @@ import { ProjectTaskManager } from "@/components/org/project-task-manager";
 import { getMessages } from "@/lib/messages";
 import { requireLocale, requireOrganizationAccess } from "@/lib/app-context";
 import { canManageProjectTasks } from "@/lib/organization";
+import { isTaskOverdue } from "@/lib/project-tasks";
 
 type Props = {
   params: Promise<{ locale: string; orgSlug: string; projectId: string }>;
@@ -57,6 +58,7 @@ export default async function ProjectTasksPage({ params }: Props) {
         endDate: task.endDate?.toISOString() ?? null,
         progressPercent: task.progressPercent,
         completedAt: task.completedAt?.toISOString() ?? null,
+        isOverdue: isTaskOverdue({ dueDate: task.dueDate, completedAt: task.completedAt, status: task.status }),
       }))}
       members={members.map((item) => ({ id: item.user.id, name: item.user.name || item.user.email || "User" }))}
       canManage={canManageProjectTasks(membership.role)}

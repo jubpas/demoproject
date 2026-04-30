@@ -23,26 +23,31 @@
 - Flow `Quotation -> Project`
 - Reports ระดับองค์กรสำหรับ Budget vs Actual
 - Audit Explorer ระดับองค์กร
+- Profit/Loss Reporting พร้อม filter ตามช่วงเวลา โครงการ และประเภทธุรกรรม
+- Audit Explorer แสดง before/after diff แบบอ่านง่าย พร้อม fallback raw JSON
 - Approval workflow สำหรับ budget change ที่เกิน threshold
 - Settings ระดับองค์กรสำหรับ `approvalThresholdInCents`
 - Member Management พร้อม invite link ระดับองค์กร
 - Super Admin Console สำหรับจัดการ organizations และ subscriptions เบื้องต้น
 - Subscription foundation แบบ monthly / yearly / lifetime พร้อม seat tracking
 - Dashboard summary cards, quick actions, และ recent transactions
+- Dashboard workload pulse, project health snapshot, และ recent activity feed
+- Project Task/Schedule polish พร้อม filters, overdue highlight, schedule summary และ timeline readability
+- Filters/Search เพิ่มเติมใน Projects, Transactions และ Tasks
 
 กำลังทำรอบนี้:
 
-- เก็บ deploy readiness ก่อนเปิดให้เพื่อนเทส
-- รีแฟกเตอร์ UI หลัง login ให้เป็น Light Admin Dashboard
+- เก็บ product flow หลักให้ครบและนิ่งก่อนกลับไป deploy readiness
+- ปรับ UI หลัง login ให้สอดคล้องกับ `DESIGN.md` แบบ incremental โดยไม่รื้อ light admin dashboard เดิมทันที
 - จัดเอกสาร task แยกจาก project plan ให้ตรงกับสภาพ repo ปัจจุบัน
 - เก็บ permission layer ให้รองรับ super admin และ organization members flow ให้ชัดขึ้นในจุดที่ยังเหลือ
 
 ถัดไปทันที:
 
-- ปิดช่องโหว่ forgot-password mock reset link ใน production
-- วางแผนย้ายจาก SQLite local file ไปยัง hosted database สำหรับ deploy
-- เก็บ super admin bootstrap safety ให้ไม่ผูกกับ email ดิบอย่างเดียว
-- ตัดสินใจแนวทาง deploy ฟรีสำหรับรอบทดสอบทีม
+- เก็บ Customer/Survey Appointment/Quotation flow polish ให้ลื่นขึ้น
+- เพิ่ม linked action/shortcut ระหว่าง Customer -> Survey Appointment -> Quotation -> Project
+- เพิ่ม filters/search ใน Quotation และ Survey Appointment ถ้ายังไม่ครบ
+- เพิ่ม member audit และ owner transfer flow ในรอบถัดไป
 
 อัปเดตล่าสุด:
 
@@ -79,6 +84,12 @@
 - เพิ่ม models `OrganizationInvite`, `SubscriptionPlan`, `OrganizationSubscription`, `SubscriptionEvent`
 - เพิ่ม subscription foundation แบบ manual admin-managed พร้อม monthly / yearly / lifetime plans และ seat limit summary
 - เพิ่มการแสดงแผนใช้งานและ seat usage ในหน้า settings ขององค์กร
+- เพิ่ม `ProjectTask` พร้อม task CRUD, audit log, overdue logic และ schedule page แบบ read-only
+- เพิ่ม Task/Schedule polish: task filters, overdue highlight, schedule dark technical header, status badge และ progress overlay
+- เพิ่ม Dashboard Analytics รอบสอง: workload pulse, project health snapshot, over-budget metric และ recent audit activity feed
+- เพิ่ม Profit/Loss Reporting ในหน้า Reports พร้อม filter ตามวันที่ โครงการ และประเภทธุรกรรม
+- เพิ่ม Audit readable diff ใน Audit Explorer แทนการอ่าน JSON ดิบเป็นหลัก
+- เพิ่ม filters ใน Projects และ Transactions พร้อม count และ clear filters
 
 ## Main Tasks
 
@@ -99,28 +110,38 @@
 
 ### 3. Reporting
 
-- เพิ่ม project profit/loss report
+- ✅ เพิ่ม project profit/loss report พร้อม filter ตามช่วงเวลา โครงการ และประเภทธุรกรรม
 - เพิ่ม over-budget project report ให้ลึกขึ้น
 - เพิ่ม export CSV/PDF ใน phase ถัดไป
 
 ### 4. Auditing
 
-- เพิ่มแสดง before/after diff แบบอ่านง่ายขึ้น
+- ✅ เพิ่มแสดง before/after diff แบบอ่านง่ายขึ้น พร้อม fallback raw JSON
 - ขยาย audit log ไปยัง entity อื่นให้ครบขึ้น
 - เพิ่ม export audit log ใน phase ถัดไป
 
 ### 5. Filters And Search
 
 - เพิ่ม search/filter ใน Customers
-- เพิ่ม search/filter ใน Projects
-- เพิ่ม search/filter ใน Transactions
+- ✅ เพิ่ม search/filter ใน Projects ตาม keyword, status, customer
+- ✅ เพิ่ม search/filter ใน Transactions ตาม keyword, type, payment status, project, budget category
+- ✅ เพิ่ม search/filter ใน Tasks ตาม keyword, status, priority, assignee
 - รองรับ filter ตาม status, type, project, date range
 
 ### 6. Dashboard Analytics
 
-- เพิ่ม profit/loss summary
-- เพิ่ม analytics section และ visual summary แบบเบา ๆ
-- เพิ่ม recent activity ให้เชื่อมกับ audit/revision มากขึ้น
+- ✅ เพิ่ม workload pulse สำหรับงานค้าง งานเกินกำหนด และนัดหมายใกล้ถึง
+- ✅ เพิ่ม project health snapshot และ over-budget project metric
+- ✅ เพิ่ม recent activity feed จาก audit log
+- เพิ่ม analytics visual summary ให้ลึกขึ้นในรอบถัดไป
+
+### 6.1 UI Alignment With DESIGN.md
+
+- ทุกงาน UI ต้องอ่าน `DESIGN.md` ก่อนเริ่มแก้
+- ใช้ `DESIGN.md` เป็น source of truth สำหรับ visual direction, color tokens, typography, spacing, component tone, และ responsive behavior
+- ปัจจุบัน app เป็น light admin dashboard ให้ preserve UX เดิมก่อน แล้วนำ principle จาก `DESIGN.md` มาปรับ hierarchy, spacing, card tone, CTA, และ state styling แบบ incremental
+- ห้าม redesign ทั้งระบบเป็น dark theme ทันที เว้นแต่มีคำสั่งชัดเจน
+- หน้าใหม่หรือ component ใหม่ควร map token จาก `DESIGN.md` เข้ากับ Tailwind class ที่มีอยู่ โดยไม่เพิ่ม UI library ถ้าไม่จำเป็น
 
 ### 7. Member Management
 
@@ -143,6 +164,8 @@
 - เพิ่ม custom plan management และ billing history ให้ลึกขึ้นในรอบถัดไป
 
 ### 9. Deploy Readiness And Security
+
+สถานะ: พักไว้ก่อนจนกว่า core product flow จะเรียบร้อยกว่าเดิม
 
 - ปิดการส่ง `resetUrl` กลับ client ใน production เมื่อ email delivery ไม่พร้อม
 - วางแผนหรือย้าย database จาก SQLite local file ไปยัง hosted database สำหรับการ deploy จริง
@@ -176,28 +199,28 @@
 
 ## Recommended Order
 
-1. Profit/Loss Reporting
-2. Deploy Readiness And Security
-3. Audit Diff Readability
-4. Filters And Search
-5. Dashboard Analytics เพิ่มเติม
-6. Member Management Enhancements
-7. Transaction Attachment Improvements
-8. Cost Accounting Expansion
-9. Invite Email Delivery
-10. Owner Transfer And Member Audit Log
-11. Payment Gateway And Billing Checkout
+1. Customer/Survey/Quotation Flow Polish
+2. Quotation And Survey Appointment Filters
+3. Member Management Enhancements
+4. Transaction Attachment Improvements
+5. Cost Accounting Expansion
+6. Invite Email Delivery
+7. Owner Transfer And Member Audit Log
+8. UI Alignment รอบต่อเนื่องด้วย `DESIGN.md`
+9. Deploy Readiness And Security
+10. Payment Gateway And Billing Checkout
 
 ## Notes
 
-- ยึดแนวทาง project-control-first บน light admin dashboard
+- ยึดแนวทาง project-control-first บน light admin dashboard และใช้ `DESIGN.md` เป็น design source of truth สำหรับงาน UI
 - Desktop ต้องอ่านง่ายเป็น table-first
 - Mobile ต้อง fallback เป็น cards และ stacked sections
 - ทุก task ใหม่ต้องอัปเดตไฟล์นี้และ `project-plan.md` เสมอ
 - business flow ที่ต้องรองรับระยะถัดไปคือ `Customer -> Survey Appointment -> Quotation -> Project -> Transactions`
 - ✅ `approval threshold settings` ทำเสร็จแล้ว (2026-04-28)
 - ✅ `settings endpoint mismatch` และ `approval threshold display` เก็บแล้ว (2026-04-28)
-- implementation รอบต่อไปควรเพิ่ม profit/loss report, deploy hardening, และ audit diff ที่อ่านง่ายขึ้น
+- ✅ task/schedule polish, dashboard analytics, profit/loss report, audit diff readability และ filters หลักทำเสร็จแล้วในรอบ product polish ล่าสุด
+- implementation รอบต่อไปควรเก็บ Customer/Survey Appointment/Quotation flow polish และ filters ของ business flow ฝั่งเอกสาร
 - เอกสารต้องสะท้อนว่า approval workflow และ threshold settings ทำเสร็จแล้ว
 - มี code/doc drift เรื่อง i18n: เอกสารเดิมอ้าง `next-intl` แต่โค้ดจริงใช้ message modules แบบ `.ts`
 - implementation รอบถัดไปควรเก็บ technical alignment ควบคู่กับ feature work

@@ -94,6 +94,10 @@ type Props = {
       onHold: string;
       completed: string;
       cancelled: string;
+      allStatuses: string;
+      allCustomers: string;
+      clearFilters: string;
+      searchProjectsPlaceholder: string;
     };
   };
 };
@@ -174,6 +178,8 @@ export function ProjectManager({ locale, orgSlug, projects, customers, canManage
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ProjectStatus | "ALL">("ALL");
+  const [customerFilter, setCustomerFilter] = useState("ALL");
 
   const moneyFormatter = new Intl.NumberFormat(locale === "th" ? "th-TH" : "en-US", {
     minimumFractionDigits: 2,
@@ -185,18 +191,23 @@ export function ProjectManager({ locale, orgSlug, projects, customers, canManage
 
   const filteredProjects = useMemo(() => {
     const keyword = query.trim().toLowerCase();
-    if (!keyword) {
-      return projects;
-    }
-
-    return projects.filter((project) =>
-      [project.name, project.code, project.customerName, project.location]
+    return projects.filter((project) => {
+      const matchesKeyword = keyword ? [project.name, project.code, project.customerName, project.location]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
-        .includes(keyword),
-    );
-  }, [projects, query]);
+        .includes(keyword) : true;
+      const matchesStatus = statusFilter === "ALL" || project.status === statusFilter;
+      const matchesCustomer = customerFilter === "ALL" || (customerFilter === "NONE" ? !project.customerId : project.customerId === customerFilter);
+      return matchesKeyword && matchesStatus && matchesCustomer;
+    });
+  }, [projects, query, statusFilter, customerFilter]);
+
+  function clearFilters() {
+    setQuery("");
+    setStatusFilter("ALL");
+    setCustomerFilter("ALL");
+  }
 
   function updateForm(field: keyof ProjectForm, value: string) {
     setForm((current) => ({ ...current, [field]: value as ProjectForm[keyof ProjectForm] }));
@@ -302,7 +313,20 @@ export function ProjectManager({ locale, orgSlug, projects, customers, canManage
           </div>
         </DataPanel>
 
-        <DataPanel title={copy.projects.listTitle} actions={<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search project" className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" />}>
+        <DataPanel title={copy.projects.listTitle} actions={<span className="text-xs font-medium text-slate-500">{filteredProjects.length}/{projects.length}</span>}>
+          <div className="mb-4 grid gap-3 lg:grid-cols-[1.2fr_0.8fr_0.8fr_auto]">
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.projects.searchProjectsPlaceholder} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" />
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as ProjectStatus | "ALL")} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+              <option value="ALL">{copy.projects.allStatuses}</option>
+              {statusOptions.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
+            </select>
+            <select value={customerFilter} onChange={(event) => setCustomerFilter(event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+              <option value="ALL">{copy.projects.allCustomers}</option>
+              <option value="NONE">{copy.projects.noCustomer}</option>
+              {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
+            </select>
+            <button type="button" onClick={clearFilters} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-white">{copy.projects.clearFilters}</button>
+          </div>
           {filteredProjects.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center">
               <p className="text-lg font-medium text-slate-900">{copy.projects.emptyTitle}</p>
