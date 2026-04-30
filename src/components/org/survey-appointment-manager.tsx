@@ -98,6 +98,13 @@ type Props = {
       completed: string;
       cancelled: string;
       rescheduled: string;
+      allStatuses: string;
+      allCustomers: string;
+      allProjects: string;
+      clearFilters: string;
+      searchAppointmentsPlaceholder: string;
+      flowHint: string;
+      quotations: string;
     };
   };
 };
@@ -174,17 +181,26 @@ export function SurveyAppointmentManager({ locale, orgSlug, appointments, custom
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<SurveyAppointmentStatus | "ALL">("ALL");
+  const [customerFilter, setCustomerFilter] = useState("ALL");
+  const [projectFilter, setProjectFilter] = useState("ALL");
   const statusOptions = getStatusOptions(copy);
   const statusMap = Object.fromEntries(statusOptions.map((item) => [item.value, item])) as Record<SurveyAppointmentStatus, (typeof statusOptions)[number]>;
 
   const filteredAppointments = useMemo(() => {
     const keyword = query.trim().toLowerCase();
-    if (!keyword) return appointments;
-    return appointments.filter((item) => [item.title, item.customerName, item.projectName, item.location, item.contactName].filter(Boolean).join(" ").toLowerCase().includes(keyword));
-  }, [appointments, query]);
+    return appointments.filter((item) => {
+      const matchesKeyword = keyword ? [item.title, item.customerName, item.projectName, item.location, item.contactName].filter(Boolean).join(" ").toLowerCase().includes(keyword) : true;
+      const matchesStatus = statusFilter === "ALL" || item.status === statusFilter;
+      const matchesCustomer = customerFilter === "ALL" || item.customerId === customerFilter;
+      const matchesProject = projectFilter === "ALL" || (projectFilter === "NONE" ? !item.projectId : item.projectId === projectFilter);
+      return matchesKeyword && matchesStatus && matchesCustomer && matchesProject;
+    });
+  }, [appointments, query, statusFilter, customerFilter, projectFilter]);
 
   function updateForm(field: keyof AppointmentForm, value: string) { setForm((current) => ({ ...current, [field]: value as AppointmentForm[keyof AppointmentForm] })); }
   function updateEditingForm(field: keyof AppointmentForm, value: string) { setEditingForm((current) => ({ ...current, [field]: value as AppointmentForm[keyof AppointmentForm] })); }
+  function clearFilters() { setQuery(""); setStatusFilter("ALL"); setCustomerFilter("ALL"); setProjectFilter("ALL"); }
 
   function validate(payload: AppointmentForm) {
     if (!payload.customerId) return copy.surveyAppointments.requiredCustomer;
@@ -252,6 +268,16 @@ export function SurveyAppointmentManager({ locale, orgSlug, appointments, custom
   return (
     <div className="space-y-6">
       <PageHeader title={copy.surveyAppointments.title} description={copy.surveyAppointments.subtitle} />
+      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <p className="text-sm text-slate-600">{copy.surveyAppointments.flowHint}</p>
+          <div className="flex flex-wrap gap-2">
+            <a href={`/${locale}/org/${orgSlug}/customers`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">{copy.surveyAppointments.customer}</a>
+            <a href={`/${locale}/org/${orgSlug}/quotations`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">{copy.surveyAppointments.quotations}</a>
+            <a href={`/${locale}/org/${orgSlug}/projects`} className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800">{copy.surveyAppointments.project}</a>
+          </div>
+        </div>
+      </section>
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <DataPanel title={copy.surveyAppointments.createTitle}>
           <div className="space-y-4">
@@ -262,7 +288,24 @@ export function SurveyAppointmentManager({ locale, orgSlug, appointments, custom
           </div>
         </DataPanel>
 
-        <DataPanel title={copy.surveyAppointments.listTitle} actions={<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search appointment" className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100" />}>
+        <DataPanel title={copy.surveyAppointments.listTitle} actions={<span className="text-xs font-medium text-slate-500">{filteredAppointments.length}/{appointments.length}</span>}>
+          <div className="mb-4 grid gap-3 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_auto]">
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.surveyAppointments.searchAppointmentsPlaceholder} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100" />
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as SurveyAppointmentStatus | "ALL")} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+              <option value="ALL">{copy.surveyAppointments.allStatuses}</option>
+              {statusOptions.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
+            </select>
+            <select value={customerFilter} onChange={(event) => setCustomerFilter(event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+              <option value="ALL">{copy.surveyAppointments.allCustomers}</option>
+              {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
+            </select>
+            <select value={projectFilter} onChange={(event) => setProjectFilter(event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+              <option value="ALL">{copy.surveyAppointments.allProjects}</option>
+              <option value="NONE">{copy.surveyAppointments.noProject}</option>
+              {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+            </select>
+            <button type="button" onClick={clearFilters} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-white">{copy.surveyAppointments.clearFilters}</button>
+          </div>
           {filteredAppointments.length === 0 ? <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center"><p className="text-lg font-medium text-slate-900">{copy.surveyAppointments.emptyTitle}</p><p className="mt-2 text-sm text-slate-500">{copy.surveyAppointments.emptyDescription}</p></div> : <div className="space-y-4">{filteredAppointments.map((item) => {
             const isEditing = editingId === item.id;
             return <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">{isEditing ? <div className="space-y-4"><Fields form={editingForm} customers={customers} projects={projects} members={members} copy={copy} onChange={updateEditingForm} /><div className="flex gap-3"><button type="button" onClick={() => void submit("PATCH", item.id)} className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">{copy.surveyAppointments.updateAction}</button><button type="button" onClick={() => setEditingId(null)} className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700">{copy.common.cancel}</button></div></div> : <div className="space-y-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-base font-semibold text-slate-950">{item.title}</p><p className="mt-1 text-sm text-slate-500">{item.customerName} · {item.location}</p></div><StatusBadge label={statusMap[item.status].label} tone={statusMap[item.status].tone} /></div><div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-2"><p>{copy.surveyAppointments.project}: {item.projectName || copy.surveyAppointments.noProject}</p><p>Assignee: {item.assignedToName || copy.common.noData}</p><p>{copy.surveyAppointments.scheduledStart}: {item.scheduledStart.slice(0, 16).replace("T", " ")}</p><p>{copy.surveyAppointments.scheduledEnd}: {item.scheduledEnd ? item.scheduledEnd.slice(0, 16).replace("T", " ") : copy.common.noData}</p><p>{copy.surveyAppointments.contactName}: {item.contactName || copy.common.noData}</p><p>{copy.surveyAppointments.contactPhone}: {item.contactPhone || copy.common.noData}</p></div><p className="text-sm text-slate-600">{item.note || copy.common.noData}</p><div className="flex flex-wrap gap-2"><button type="button" onClick={() => { setEditingId(item.id); setEditingForm(toForm(item)); }} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700">{copy.common.edit}</button><button type="button" disabled={convertingId === item.id} onClick={() => void convertToQuotation(item.id)} className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700">{convertingId === item.id ? copy.surveyAppointments.convertingToQuotation : copy.surveyAppointments.convertToQuotation}</button><button type="button" disabled={deletingId === item.id} onClick={() => void remove(item.id)} className="rounded-xl border border-red-200 px-3 py-2 text-xs font-medium text-red-700">{deletingId === item.id ? copy.common.deleting : copy.common.delete}</button></div></div>}</div>;

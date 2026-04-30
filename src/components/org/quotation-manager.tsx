@@ -90,6 +90,7 @@ type Props = {
       quotationNumber: string;
       customer: string;
       project: string;
+      surveyAppointments: string;
       noProject: string;
       issueDate: string;
       validUntil: string;
@@ -122,6 +123,12 @@ type Props = {
       accepted: string;
       rejected: string;
       expired: string;
+      allStatuses: string;
+      allCustomers: string;
+      allProjects: string;
+      clearFilters: string;
+      searchQuotationsPlaceholder: string;
+      flowHint: string;
     };
   };
 };
@@ -263,26 +270,33 @@ export function QuotationManager({ locale, quotations, customers, projects, orgS
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<QuotationStatus | "ALL">("ALL");
+  const [customerFilter, setCustomerFilter] = useState("ALL");
+  const [projectFilter, setProjectFilter] = useState("ALL");
   const moneyFormatter = new Intl.NumberFormat(locale === "th" ? "th-TH" : "en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const statusOptions = getStatusOptions(copy);
   const statusMap = Object.fromEntries(statusOptions.map((item) => [item.value, item])) as Record<QuotationStatus, (typeof statusOptions)[number]>;
 
   const filteredQuotations = useMemo(() => {
     const keyword = query.trim().toLowerCase();
-    if (!keyword) return quotations;
-    return quotations.filter((item) =>
-      [item.quotationNumber, item.customerName, item.projectName, item.note]
+    return quotations.filter((item) => {
+      const matchesKeyword = keyword ? [item.quotationNumber, item.customerName, item.projectName, item.note]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
-        .includes(keyword),
-    );
-  }, [quotations, query]);
+        .includes(keyword) : true;
+      const matchesStatus = statusFilter === "ALL" || item.status === statusFilter;
+      const matchesCustomer = customerFilter === "ALL" || item.customerId === customerFilter;
+      const matchesProject = projectFilter === "ALL" || (projectFilter === "NONE" ? !item.projectId : item.projectId === projectFilter);
+      return matchesKeyword && matchesStatus && matchesCustomer && matchesProject;
+    });
+  }, [quotations, query, statusFilter, customerFilter, projectFilter]);
 
   const preview = calculatePreview(form);
 
   function updateForm(field: keyof FormDataShape, value: string | boolean) { setForm((current) => ({ ...current, [field]: value as never })); }
   function updateEditingForm(field: keyof FormDataShape, value: string | boolean) { setEditingForm((current) => ({ ...current, [field]: value as never })); }
+  function clearFilters() { setQuery(""); setStatusFilter("ALL"); setCustomerFilter("ALL"); setProjectFilter("ALL"); }
   function updateItems(target: "create" | "edit", index: number, field: keyof QuotationItemData, value: string) {
     const updater = target === "create" ? setForm : setEditingForm;
     updater((current) => ({ ...current, items: current.items.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item) }));
@@ -351,6 +365,16 @@ export function QuotationManager({ locale, quotations, customers, projects, orgS
   return (
     <div className="space-y-6">
       <PageHeader title={copy.quotations.title} description={copy.quotations.subtitle} />
+      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <p className="text-sm text-slate-600">{copy.quotations.flowHint}</p>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/${locale}/org/${orgSlug}/customers`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">{copy.quotations.customer}</Link>
+            <Link href={`/${locale}/org/${orgSlug}/survey-appointments`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">{copy.quotations.surveyAppointments}</Link>
+            <Link href={`/${locale}/org/${orgSlug}/projects`} className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800">{copy.quotations.project}</Link>
+          </div>
+        </div>
+      </section>
       <section className="grid gap-4 md:grid-cols-4">
         <MetricCard label={copy.quotations.subtotal} value={moneyFormatter.format(preview.subtotal)} tone="slate" />
         <MetricCard label={copy.quotations.discount} value={moneyFormatter.format(preview.discount)} tone="red" />
@@ -367,7 +391,24 @@ export function QuotationManager({ locale, quotations, customers, projects, orgS
           </div>
         </DataPanel>
 
-        <DataPanel title={copy.quotations.listTitle} actions={<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search quotation" className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100" />}>
+        <DataPanel title={copy.quotations.listTitle} actions={<span className="text-xs font-medium text-slate-500">{filteredQuotations.length}/{quotations.length}</span>}>
+          <div className="mb-4 grid gap-3 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_auto]">
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.quotations.searchQuotationsPlaceholder} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100" />
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as QuotationStatus | "ALL")} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+              <option value="ALL">{copy.quotations.allStatuses}</option>
+              {statusOptions.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
+            </select>
+            <select value={customerFilter} onChange={(event) => setCustomerFilter(event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+              <option value="ALL">{copy.quotations.allCustomers}</option>
+              {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
+            </select>
+            <select value={projectFilter} onChange={(event) => setProjectFilter(event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+              <option value="ALL">{copy.quotations.allProjects}</option>
+              <option value="NONE">{copy.quotations.noProject}</option>
+              {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+            </select>
+            <button type="button" onClick={clearFilters} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-white">{copy.quotations.clearFilters}</button>
+          </div>
           {filteredQuotations.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center">
               <p className="text-lg font-medium text-slate-900">{copy.quotations.emptyTitle}</p>
