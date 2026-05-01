@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { startTransition, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { Locale } from "@/lib/locales";
 import { DataPanel } from "@/components/dashboard/data-panel";
 import { PageHeader } from "@/components/dashboard/page-header";
 
@@ -17,6 +19,7 @@ type CustomerItem = {
 };
 
 type Props = {
+  locale: Locale;
   orgSlug: string;
   customers: CustomerItem[];
   canManage: boolean;
@@ -28,6 +31,7 @@ type Props = {
       deleting: string;
       unauthorized: string;
       noData: string;
+      view: string;
     };
     customers: {
       title: string;
@@ -125,7 +129,7 @@ function CustomerFields({
   );
 }
 
-export function CustomerManager({ orgSlug, customers, canManage, copy }: Props) {
+export function CustomerManager({ locale, orgSlug, customers, canManage, copy }: Props) {
   const router = useRouter();
   const [form, setForm] = useState<CustomerForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -321,6 +325,9 @@ export function CustomerManager({ orgSlug, customers, canManage, copy }: Props) 
                           <td className="py-4">{customer.email || copy.common.noData}</td>
                           <td className="py-4 text-right">
                             <div className="flex justify-end gap-2">
+                              <Link href={`/${locale}/org/${orgSlug}/customers/${customer.id}`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700">
+                                {copy.common.view}
+                              </Link>
                               <button
                                 type="button"
                                 disabled={!canManage}
@@ -379,6 +386,9 @@ export function CustomerManager({ orgSlug, customers, canManage, copy }: Props) 
                             <p>{copy.customers.address}: {customer.address || copy.common.noData}</p>
                           </div>
                           <div className="flex gap-2">
+                            <Link href={`/${locale}/org/${orgSlug}/customers/${customer.id}`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700">
+                              {copy.common.view}
+                            </Link>
                             <button type="button" onClick={() => {
                               setEditingId(customer.id);
                               setEditingForm(toForm(customer));

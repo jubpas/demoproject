@@ -67,6 +67,7 @@ type Props = {
   customers: CustomerOption[];
   projects: ProjectOption[];
   orgSlug: string;
+  initialCustomerId?: string;
   canManage: boolean;
   copy: {
     common: {
@@ -260,9 +261,9 @@ function Fields({
   );
 }
 
-export function QuotationManager({ locale, quotations, customers, projects, orgSlug, canManage, copy }: Props) {
+export function QuotationManager({ locale, quotations, customers, projects, orgSlug, initialCustomerId = "", canManage, copy }: Props) {
   const router = useRouter();
-  const [form, setForm] = useState<FormDataShape>(emptyForm);
+  const [form, setForm] = useState<FormDataShape>({ ...emptyForm, customerId: initialCustomerId });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingForm, setEditingForm] = useState<FormDataShape>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
@@ -329,7 +330,7 @@ export function QuotationManager({ locale, quotations, customers, projects, orgS
       const data = await response.json();
       if (!response.ok) return setError(data.error ?? copy.common.unauthorized);
       if (method === "POST") {
-        setForm(emptyForm);
+        setForm({ ...emptyForm, customerId: initialCustomerId });
         setSuccess(copy.quotations.createdSuccess);
       } else {
         setEditingId(null);

@@ -15,7 +15,7 @@ export default async function MembersPage({ params }: Props) {
   const { organization, membership, user } = await requireOrganizationAccess(validLocale, orgSlug);
   const messages = getMessages(validLocale);
 
-  const [members, invites, seatSummary] = await Promise.all([
+  const [members, invites, seatSummary, recentMemberActivity] = await Promise.all([
     prisma.membership.findMany({
       where: { organizationId: organization.id },
       include: {
@@ -45,6 +45,17 @@ export default async function MembersPage({ params }: Props) {
       take: 20,
     }),
     getOrganizationSeatSummary(organization.id),
+    prisma.auditLog.findMany({
+      where: {
+        organizationId: organization.id,
+        entityType: { in: ["MEMBERSHIP", "ORGANIZATION_INVITE"] },
+      },
+      include: {
+        actor: { select: { name: true, email: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    }),
   ]);
 
   return (
@@ -82,6 +93,13 @@ export default async function MembersPage({ params }: Props) {
         subscriptionName: seatSummary.subscription?.plan.name ?? null,
         subscriptionStatus: seatSummary.subscription?.status ?? null,
       }}
+      recentActivity={recentMemberActivity.map((item) => ({
+        id: item.id,
+        summary: item.summary,
+        action: item.action,
+        actorName: item.actor.name || item.actor.email || "User",
+        createdAt: item.createdAt.toISOString(),
+      }))}
       copy={{ common: messages.common, members: messages.members }}
     />
   );

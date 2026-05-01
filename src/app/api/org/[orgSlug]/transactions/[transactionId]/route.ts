@@ -9,7 +9,7 @@ import {
   canWriteTransactions,
   getMembershipByOrgSlug,
 } from "@/lib/organization";
-import { deleteLocalFile } from "@/lib/uploads";
+import { deleteLocalFile, saveReceiptFile, validateReceiptFile } from "@/lib/uploads";
 
 type Props = {
   params: Promise<{ orgSlug: string; transactionId: string }>;
@@ -65,12 +65,28 @@ export async function PATCH(request: Request, { params }: Props) {
       return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
     }
 
-    const body = await request.json();
+    const contentType = request.headers.get("content-type") || "";
+    const isFormData = contentType.includes("multipart/form-data");
+    const body = isFormData ? await request.formData() : await request.json();
     const budgetCategories = await ensureOrganizationBudgetCategories(membership.organizationId);
-    const category = body?.category?.trim();
-    const amountInCents = parseAmountToCents(body?.amount);
-    const projectId = typeof body?.projectId === "string" && body.projectId.trim() ? body.projectId : null;
-    const budgetCategoryId = typeof body?.budgetCategoryId === "string" && body.budgetCategoryId.trim() ? body.budgetCategoryId : null;
+    const categoryValue = isFormData ? body.get("category") : body?.category;
+    const amountValue = isFormData ? body.get("amount") : body?.amount;
+    const projectIdValue = isFormData ? body.get("projectId") : body?.projectId;
+    const budgetCategoryIdValue = isFormData ? body.get("budgetCategoryId") : body?.budgetCategoryId;
+    const paymentStatusValue = isFormData ? body.get("paymentStatus") : body?.paymentStatus;
+    const typeValue = isFormData ? body.get("type") : body?.type;
+    const vendorNameValue = isFormData ? body.get("vendorName") : body?.vendorName;
+    const referenceNumberValue = isFormData ? body.get("referenceNumber") : body?.referenceNumber;
+    const descriptionValue = isFormData ? body.get("description") : body?.description;
+    const transactionDateValue = isFormData ? body.get("transactionDate") : body?.transactionDate;
+    const removeExistingReceiptValue = isFormData ? body.get("removeExistingReceipt") : body?.removeExistingReceipt;
+    const receiptValue = isFormData ? body.get("receipt") : null;
+
+    const category = typeof categoryValue === "string" ? categoryValue.trim() : "";
+    const amountInCents = parseAmountToCents(amountValue);
+    const projectId = typeof projectIdValue === "string" && projectIdValue.trim() ? projectIdValue : null;
+    const budgetCategoryId = typeof budgetCategoryIdValue === "string" && budgetCategoryIdValue.trim() ? budgetCategoryIdValue : null;
+    const removeExistingReceipt = removeExistingReceiptValue === true || removeExistingReceiptValue === "true";
 
     if (!category) {
       return NextResponse.json({ error: "Category is required" }, { status: 400 });
@@ -97,21 +113,63 @@ export async function PATCH(request: Request, { params }: Props) {
     const updatedTransaction = await prisma.transaction.update({
       where: { id: existingTransaction.id },
       data: {
-        type: parseType(body?.type),
-        paymentStatus: parsePaymentStatus(body?.paymentStatus),
+        type: parseType(typeValue),
+        paymentStatus: parsePaymentStatus(paymentStatusValue),
         category,
         budgetCategoryId,
-        vendorName: body?.vendorName?.trim() || null,
-        referenceNumber: body?.referenceNumber?.trim() || null,
+        vendorName: typeof vendorNameValue === "string" ? vendorNameValue.trim() || null : null,
+        referenceNumber: typeof referenceNumberValue === "string" ? referenceNumberValue.trim() || null : null,
         amountInCents,
         projectId,
-        description: body?.description?.trim() || null,
+        description: typeof descriptionValue === "string" ? descriptionValue.trim() || null : null,
         transactionDate:
-          typeof body?.transactionDate === "string" && body.transactionDate
-            ? new Date(body.transactionDate)
+          typeof transactionDateValue === "string" && transactionDateValue
+            ? new Date(transactionDateValue)
             : existingTransaction.transactionDate,
       },
     });
+
+    const existingAttachments = await prisma.attachment.findMany({
+      where: { transactionId: existingTransaction.id },
+    });
+
+    if (removeExistingReceipt && existingAttachments.length > 0) {
+      await Promise.all(existingAttachments.map((item) => deleteLocalFile(item.filePath)));
+      await prisma.attachment.deleteMany({ where: { transactionId: existingTransaction.id } });
+    }
+
+    if (receiptValue instanceof File && receiptValue.size > 0) {
+      try {
+        validateReceiptFile(receiptValue);
+        const savedFile = await saveReceiptFile({
+          file: receiptValue,
+          organizationId: membership.organizationId,
+        });
+
+        await prisma.attachment.create({
+          data: {
+            organizationId: membership.organizationId,
+            projectId,
+            transactionId: updatedTransaction.id,
+            uploadedById: userId,
+            fileName: savedFile.fileName,
+            filePath: savedFile.filePath,
+            fileType: savedFile.fileType,
+            fileSize: savedFile.fileSize,
+          },
+        });
+      } catch (error) {
+        if (error instanceof Error && error.message === "INVALID_FILE_TYPE") {
+          return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
+        }
+
+        if (error instanceof Error && error.message === "FILE_TOO_LARGE") {
+          return NextResponse.json({ error: "File too large" }, { status: 400 });
+        }
+
+        throw error;
+      }
+    }
 
     await createAuditLog({
       organizationId: membership.organizationId,

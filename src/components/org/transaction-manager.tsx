@@ -63,6 +63,9 @@ type Props = {
       fileTypeError: string;
       fileSizeError: string;
       noData: string;
+      removeReceipt: string;
+      replaceReceipt: string;
+      keepReceipts: string;
     };
     transactions: {
       title: string;
@@ -193,6 +196,8 @@ export function TransactionManager({ locale, orgSlug, transactions, projects, bu
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingForm, setEditingForm] = useState<TransactionForm>(emptyForm);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [editingReceiptFile, setEditingReceiptFile] = useState<File | null>(null);
+  const [removeExistingReceipt, setRemoveExistingReceipt] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -340,10 +345,31 @@ export function TransactionManager({ locale, orgSlug, transactions, projects, bu
     setSubmitting(true);
 
     try {
+      const receiptError = validateReceipt(editingReceiptFile);
+      if (receiptError) {
+        setError(receiptError);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.set("type", editingForm.type);
+      formData.set("category", editingForm.category.trim());
+      formData.set("paymentStatus", editingForm.paymentStatus);
+      formData.set("budgetCategoryId", editingForm.budgetCategoryId);
+      formData.set("vendorName", editingForm.vendorName);
+      formData.set("referenceNumber", editingForm.referenceNumber);
+      formData.set("amount", editingForm.amount);
+      formData.set("transactionDate", editingForm.transactionDate);
+      formData.set("projectId", editingForm.projectId);
+      formData.set("description", editingForm.description);
+      formData.set("removeExistingReceipt", String(removeExistingReceipt));
+      if (editingReceiptFile) {
+        formData.set("receipt", editingReceiptFile);
+      }
+
       const response = await fetch(`/api/org/${orgSlug}/transactions/${transactionId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingForm),
+        body: formData,
       });
       const data = await response.json();
       if (!response.ok) {
@@ -352,6 +378,8 @@ export function TransactionManager({ locale, orgSlug, transactions, projects, bu
       }
 
       setEditingId(null);
+      setEditingReceiptFile(null);
+      setRemoveExistingReceipt(false);
       setSuccess(copy.transactions.updatedSuccess);
       startTransition(() => router.refresh());
     } catch {
@@ -456,9 +484,20 @@ export function TransactionManager({ locale, orgSlug, transactions, projects, bu
                     {isEditing ? (
                       <div className="space-y-4">
                          <TransactionFields form={editingForm} projects={projects} budgetCategories={budgetCategories} copy={copy} onChange={updateEditingForm} allowReceipt={false} />
+                        <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
+                          <label className="flex items-center gap-3 text-sm text-slate-700">
+                            <input type="checkbox" checked={removeExistingReceipt} onChange={(event) => setRemoveExistingReceipt(event.target.checked)} />
+                            {copy.common.removeReceipt}
+                          </label>
+                          <label className="block space-y-2">
+                            <span className="text-sm font-medium text-slate-700">{copy.common.replaceReceipt}</span>
+                            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setEditingReceiptFile(event.target.files?.[0] ?? null)} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white" />
+                          </label>
+                          <p className="text-xs text-slate-500">{copy.common.keepReceipts}</p>
+                        </div>
                         <div className="flex gap-3">
                           <button type="button" onClick={() => void updateTransaction(transaction.id)} className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">{copy.transactions.updateAction}</button>
-                          <button type="button" onClick={() => setEditingId(null)} className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700">{copy.common.cancel}</button>
+                          <button type="button" onClick={() => { setEditingId(null); setEditingReceiptFile(null); setRemoveExistingReceipt(false); }} className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700">{copy.common.cancel}</button>
                         </div>
                       </div>
                     ) : (
@@ -500,7 +539,7 @@ export function TransactionManager({ locale, orgSlug, transactions, projects, bu
                           </div>
                         ) : null}
                         <div className="flex gap-2">
-                          <button type="button" onClick={() => { setEditingId(transaction.id); setEditingForm(toForm(transaction)); }} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700">{copy.common.edit}</button>
+                          <button type="button" onClick={() => { setEditingId(transaction.id); setEditingForm(toForm(transaction)); setEditingReceiptFile(null); setRemoveExistingReceipt(false); }} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700">{copy.common.edit}</button>
                           <button type="button" disabled={!canDelete || deletingId === transaction.id} onClick={() => void deleteTransaction(transaction.id)} className="rounded-xl border border-red-200 px-3 py-2 text-xs font-medium text-red-700">{deletingId === transaction.id ? copy.common.deleting : copy.common.delete}</button>
                         </div>
                       </div>

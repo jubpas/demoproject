@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { startTransition, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/lib/locales";
@@ -51,6 +52,7 @@ type Props = {
   customers: CustomerOption[];
   projects: ProjectOption[];
   members: MemberOption[];
+  initialCustomerId?: string;
   canManage: boolean;
   copy: {
     common: {
@@ -170,9 +172,9 @@ function Fields({ form, customers, projects, members, copy, onChange }: { form: 
   );
 }
 
-export function SurveyAppointmentManager({ locale, orgSlug, appointments, customers, projects, members, canManage, copy }: Props) {
+export function SurveyAppointmentManager({ locale, orgSlug, appointments, customers, projects, members, initialCustomerId = "", canManage, copy }: Props) {
   const router = useRouter();
-  const [form, setForm] = useState<AppointmentForm>(emptyForm);
+  const [form, setForm] = useState<AppointmentForm>({ ...emptyForm, customerId: initialCustomerId });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingForm, setEditingForm] = useState<AppointmentForm>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
@@ -222,7 +224,7 @@ export function SurveyAppointmentManager({ locale, orgSlug, appointments, custom
       const response = await fetch(endpoint, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await response.json();
       if (!response.ok) return setError(data.error ?? copy.common.unauthorized);
-      if (method === "POST") { setForm(emptyForm); setSuccess(copy.surveyAppointments.createdSuccess); }
+      if (method === "POST") { setForm({ ...emptyForm, customerId: initialCustomerId }); setSuccess(copy.surveyAppointments.createdSuccess); }
       else { setEditingId(null); setSuccess(copy.surveyAppointments.updatedSuccess); }
       startTransition(() => router.refresh());
     } catch { setError(copy.common.unauthorized); }
@@ -272,9 +274,9 @@ export function SurveyAppointmentManager({ locale, orgSlug, appointments, custom
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <p className="text-sm text-slate-600">{copy.surveyAppointments.flowHint}</p>
           <div className="flex flex-wrap gap-2">
-            <a href={`/${locale}/org/${orgSlug}/customers`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">{copy.surveyAppointments.customer}</a>
-            <a href={`/${locale}/org/${orgSlug}/quotations`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">{copy.surveyAppointments.quotations}</a>
-            <a href={`/${locale}/org/${orgSlug}/projects`} className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800">{copy.surveyAppointments.project}</a>
+            <Link href={`/${locale}/org/${orgSlug}/customers`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">{copy.surveyAppointments.customer}</Link>
+            <Link href={`/${locale}/org/${orgSlug}/quotations`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">{copy.surveyAppointments.quotations}</Link>
+            <Link href={`/${locale}/org/${orgSlug}/projects`} className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800">{copy.surveyAppointments.project}</Link>
           </div>
         </div>
       </section>

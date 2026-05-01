@@ -4,13 +4,21 @@ import { getMessages } from "@/lib/messages";
 import { requireLocale, requireOrganizationAccess } from "@/lib/app-context";
 import { canManageOrganizationData } from "@/lib/organization";
 
-type Props = { params: Promise<{ locale: string; orgSlug: string }> };
+type Props = {
+  params: Promise<{ locale: string; orgSlug: string }>;
+  searchParams: Promise<{ customerId?: string | string[] }>;
+};
 
-export default async function QuotationsPage({ params }: Props) {
+function getSingleValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
+}
+
+export default async function QuotationsPage({ params, searchParams }: Props) {
   const { locale, orgSlug } = await params;
   const validLocale = await requireLocale(locale);
   const { organization, membership } = await requireOrganizationAccess(validLocale, orgSlug);
   const messages = getMessages(validLocale);
+  const initialCustomerId = getSingleValue((await searchParams).customerId).trim();
 
   const [quotations, customers, projects] = await Promise.all([
     prisma.quotation.findMany({ where: { organizationId: organization.id }, include: { customer: { select: { name: true } }, project: { select: { name: true } }, items: { orderBy: { sortOrder: "asc" } } }, orderBy: { createdAt: "desc" } }),
@@ -25,6 +33,7 @@ export default async function QuotationsPage({ params }: Props) {
       customers={customers}
       projects={projects}
       orgSlug={orgSlug}
+      initialCustomerId={customers.some((customer) => customer.id === initialCustomerId) ? initialCustomerId : ""}
       canManage={canManageOrganizationData(membership.role)}
       copy={{ common: messages.common, quotations: messages.quotations }}
     />

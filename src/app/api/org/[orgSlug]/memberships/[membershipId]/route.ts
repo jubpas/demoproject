@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { createAuditLog } from "@/lib/audit";
 import prisma from "@/lib/db";
 import {
   canAssignMemberRole,
@@ -87,6 +88,17 @@ export async function PATCH(request: Request, { params }: Props) {
       data: { role },
     });
 
+    await createAuditLog({
+      organizationId: access.organization.id,
+      actorId: userId,
+      entityType: "MEMBERSHIP",
+      entityId: updatedMembership.id,
+      action: "UPDATE",
+      summary: `Updated member role for ${membership.user.email}`,
+      before: { role: membership.role, email: membership.user.email },
+      after: { role: updatedMembership.role, email: membership.user.email },
+    });
+
     return NextResponse.json({ membership: updatedMembership });
   } catch (error) {
     console.error("Update membership error:", error);
@@ -162,6 +174,16 @@ export async function DELETE(_request: Request, { params }: Props) {
         where: { id: membership.id },
       }),
     ]);
+
+    await createAuditLog({
+      organizationId: access.organization.id,
+      actorId: userId,
+      entityType: "MEMBERSHIP",
+      entityId: membership.id,
+      action: "DELETE",
+      summary: `Removed member ${membership.userId}`,
+      before: { role: membership.role, userId: membership.userId },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

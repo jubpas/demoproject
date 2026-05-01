@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { createAuditLog } from "@/lib/audit";
 import prisma from "@/lib/db";
 import { canManageOrganizationMembers, getOrganizationScopedAccess } from "@/lib/organization";
 
@@ -38,12 +39,23 @@ export async function POST(_request: Request, { params }: Props) {
       return NextResponse.json({ error: "Only pending invites can be revoked" }, { status: 400 });
     }
 
-    await prisma.organizationInvite.update({
+    const updatedInvite = await prisma.organizationInvite.update({
       where: { id: invite.id },
       data: {
         status: "REVOKED",
         revokedAt: new Date(),
       },
+    });
+
+    await createAuditLog({
+      organizationId: access.organization.id,
+      actorId: userId,
+      entityType: "ORGANIZATION_INVITE",
+      entityId: invite.id,
+      action: "UPDATE",
+      summary: `Revoked invite for ${invite.email}`,
+      before: { email: invite.email, role: invite.role, status: invite.status },
+      after: { email: updatedInvite.email, role: updatedInvite.role, status: updatedInvite.status },
     });
 
     return NextResponse.json({ success: true });

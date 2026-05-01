@@ -220,6 +220,7 @@
 - ✅ `approval threshold settings` ทำเสร็จแล้ว (2026-04-28)
 - ✅ `settings endpoint mismatch` และ `approval threshold display` เก็บแล้ว (2026-04-28)
 - ✅ task/schedule polish, dashboard analytics, profit/loss report, audit diff readability และ filters หลักทำเสร็จแล้วในรอบ product polish ล่าสุด
+- มี demo seed script ใช้งานได้ผ่าน `npm run seed:demo` สำหรับสร้าง workspace ตัวอย่างเพื่อทดสอบ dashboard, reports, tasks, quotations และ survey flow
 - implementation รอบต่อไปควรเก็บ Customer/Survey Appointment/Quotation flow polish และ filters ของ business flow ฝั่งเอกสาร
 - เอกสารต้องสะท้อนว่า approval workflow และ threshold settings ทำเสร็จแล้ว
 - มี code/doc drift เรื่อง i18n: เอกสารเดิมอ้าง `next-intl` แต่โค้ดจริงใช้ message modules แบบ `.ts`

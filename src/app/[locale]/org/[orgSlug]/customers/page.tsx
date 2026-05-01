@@ -24,6 +24,7 @@ export default async function CustomersPage({ params }: Props) {
 
   return (
     <CustomerManager
+      locale={validLocale}
       orgSlug={orgSlug}
       customers={customers.map((customer) => ({
         ...customer,

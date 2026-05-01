@@ -42,6 +42,13 @@ type Props = {
     subscriptionName: string | null;
     subscriptionStatus: string | null;
   };
+  recentActivity: Array<{
+    id: string;
+    summary: string;
+    action: string;
+    actorName: string;
+    createdAt: string;
+  }>;
   copy: {
     common: {
       save: string;
@@ -89,6 +96,8 @@ type Props = {
       statusAccepted: string;
       statusRevoked: string;
       statusExpired: string;
+      activityTitle: string;
+      noActivity: string;
     };
   };
 };
@@ -102,6 +111,7 @@ export function MemberManager({
   members,
   invites,
   seatSummary,
+  recentActivity,
   copy,
 }: Props) {
   const router = useRouter();
@@ -408,7 +418,8 @@ export function MemberManager({
         </DataPanel>
       </div>
 
-      <DataPanel title={copy.members.pendingInvitesTitle}>
+      <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
+        <DataPanel title={copy.members.pendingInvitesTitle}>
         {invites.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm text-slate-500">
             {copy.members.noInvites}
@@ -436,7 +447,30 @@ export function MemberManager({
             ))}
           </div>
         )}
-      </DataPanel>
+        </DataPanel>
+
+        <DataPanel title={copy.members.activityTitle}>
+          {recentActivity.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm text-slate-500">
+              {copy.members.noActivity}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentActivity.map((item) => (
+                <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-slate-950">{item.summary}</p>
+                      <p className="mt-1 text-xs text-slate-500">{item.actorName}</p>
+                    </div>
+                    <p className="text-xs text-slate-400">{item.createdAt.slice(0, 16).replace("T", " ")}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </DataPanel>
+      </div>
     </div>
   );
 }

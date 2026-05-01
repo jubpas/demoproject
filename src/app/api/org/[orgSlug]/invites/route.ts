@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { createAuditLog } from "@/lib/audit";
 import prisma from "@/lib/db";
 import { createInviteToken, getInviteExpiryDate, hashInviteToken } from "@/lib/invites";
 import {
@@ -132,6 +133,16 @@ export async function POST(request: Request, { params }: Props) {
         invitedById: userId,
         expiresAt: getInviteExpiryDate(),
       },
+    });
+
+    await createAuditLog({
+      organizationId: access.organization.id,
+      actorId: userId,
+      entityType: "ORGANIZATION_INVITE",
+      entityId: invite.id,
+      action: "CREATE",
+      summary: `Created invite for ${invite.email}`,
+      after: { email: invite.email, role: invite.role, status: invite.status },
     });
 
     return NextResponse.json(
