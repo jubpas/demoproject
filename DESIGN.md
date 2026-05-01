@@ -1,7 +1,7 @@
 ---
 version: alpha
-name: Composio
-description: A developer-tools brand for AI-agent tool integration whose marketing surfaces lean into a dark, technical aesthetic with a single deep-electric-blue voltage (`#0007cd`). The page floor is near-black (`#0f0f0f`); cards float above on subtle gray-tinted surfaces. abcDiatype carries display and body in a single sans family with weights 400-600. The brand's strongest visual signature is a four-pane terminal-style mockup (a 2×2 grid of dark code/output panels) with a central blue spotlight glow — used as the homepage hero anchor.
+name: ไซต์งานโปร
+description: A multi-organization construction and project management product with a dark, technical product-app aesthetic. The interface uses a near-black canvas (`#0f0f0f`), subtle gray-tinted surfaces, compact developer-tool geometry, and a single deep-electric-blue voltage (`#0007cd`) reserved for primary actions, active navigation, and controlled spotlight moments. Product dashboards, CRUD forms, reports, schedules, audit trails, and admin screens are the primary surfaces; marketing-style terminal visuals are optional accents for auth, onboarding, and future public landing pages.
 
 colors:
   primary: "#0007cd"
@@ -259,26 +259,28 @@ components:
 
 ## Overview
 
-Composio's marketing site reads like a serious developer-infrastructure brand — closer to Vercel or Stripe Docs in atmosphere than to a typical AI-tools startup. The base canvas is a near-black `{colors.canvas}` (#0f0f0f) holding white type and a single voltage of **deep electric blue** (`{colors.primary}` — #0007cd) carrying every primary CTA, brand wordmark, and atmospheric spotlight glow that backs the homepage hero.
+ไซต์งานโปร is a product-first application for managing multiple organizations, projects, field tasks, schedules, customers, quotations, transactions, reports, members, and super-admin operations. The interface should feel like serious operational software: dark, precise, compact, and calm under heavy data density.
 
-Type runs **abcDiatype** as the single sans family across display, body, navigation, and captions. Display sits at weight 500 — confident but not bombastic. Code blocks and terminal mockups switch to JetBrains Mono.
+The base canvas is near-black `{colors.canvas}` (#0f0f0f) with white display text and soft gray body text. A single voltage of **deep electric blue** (`{colors.primary}` — #0007cd) carries primary CTAs, active navigation, important focus states, and rare atmospheric spotlight glows.
 
-The page rhythm is monolithic: dark canvas top to bottom with subtle elevation steps via card surfaces. The brand's strongest visual signature is a **four-pane terminal-style mockup** — a 2×2 grid of dark code/output panels with a central blue spotlight glow behind them.
+Typography should use the repository's available sans font as the implementation default. abcDiatype remains the brand reference only when a licensed font file is available. Code-like, audit, ID, CLI, or terminal surfaces should use the repository mono font or JetBrains Mono when available.
+
+The page rhythm is monolithic and product-oriented: dark canvas top to bottom, with depth from brightness-step surface elevation rather than heavy shadows. The four-pane terminal-style mockup remains a visual accent for auth/onboarding/landing surfaces, not a required pattern for every in-product dashboard.
 
 **Key Characteristics:**
-- Single accent: `{colors.primary}` (#0007cd) for primary CTAs, wordmark, spotlight glows.
-- Single sans family: abcDiatype carries everything except code (JetBrains Mono).
+- Single accent: `{colors.primary}` (#0007cd) for primary CTAs, active nav, focus accents, and spotlight glows.
+- Single sans family in implementation; use current repo font unless licensed abcDiatype is added.
 - Dark monolithic canvas: `{colors.canvas}` runs top to bottom; depth from `{colors.surface-card}` and `{colors.surface-card-elevated}` brightness steps.
-- Terminal-mockup hero: 2×2 grid of code/output panes is the brand signature.
-- Compact pill geometry: CTAs sit at `{rounded.md}` (8px), not full pills — developer-tool dialect.
-- Spotlight-glow atmospheric backdrop: a radial blue glow centered behind hero content.
-- 96px section rhythm.
+- Product-first surfaces: dashboards, forms, filters, lists, reports, task boards, schedules, and admin CRUD must be clearer than decorative.
+- Terminal-inspired visuals: optional accents for auth, onboarding, and future public landing pages.
+- Compact developer-tool geometry: CTAs sit at `{rounded.md}` (8px), cards at `{rounded.lg}` or `{rounded.xl}`.
+- Spotlight-glow atmospheric backdrop: use sparingly behind hero/auth/summary areas, not behind every card.
 
 ## Colors
 
 ### Brand & Accent
-- **Composio Blue** (`{colors.primary}` — #0007cd): Primary CTAs, wordmark, spotlight glow center.
-- **Composio Blue Active** (`{colors.primary-active}` — #0005a3): Press state.
+- **Sitework Blue** (`{colors.primary}` — #0007cd): Primary CTAs, active navigation, wordmark/accent marks, spotlight glow center.
+- **Sitework Blue Active** (`{colors.primary-active}` — #0005a3): Press state.
 - **Spotlight Glow Tone** (`{colors.primary-glow}` — #1a26ff): Brighter blue used inside radial atmospheric glows.
 - **Accent Cyan** (`{colors.accent-cyan}` — #00d4ff): Sparingly on data-flow visualizations.
 - **Accent Violet** (`{colors.accent-violet}` — #7b3aed): Inside specific product illustrations only.
@@ -333,11 +335,34 @@ The system runs **abcDiatype** (Lineto) across every text role. Code blocks swit
 
 ### Principles
 - **Display weight stays at 500.** Confident but not display-bold.
-- **abcDiatype across every role.** No display/body family split.
-- **JetBrains Mono on every code surface.**
+- **One sans family across every role.** Use the repo's current sans font unless licensed abcDiatype is added.
+- **Mono on every code/audit surface.** Use the repo's mono font or JetBrains Mono when available.
 
 ### Note on Font Substitutes
-abcDiatype is a Lineto licensed typeface. Open-source substitute: **Inter** at weight 500 with letter-spacing -1.5%.
+abcDiatype is a Lineto licensed typeface. For this repository, keep the current Next font implementation as the default unless a licensed abcDiatype file is added. If the project intentionally changes font later, **Inter** at weight 500 with letter-spacing -1.5% is the open-source substitute. Do not add a new font dependency only for visual parity without checking performance and licensing.
+
+## Repository Token Mapping
+
+Implementation should map these design tokens into `src/app/globals.css` before broad component migration:
+
+| Design Token | CSS Variable | Value |
+|---|---|---|
+| `{colors.canvas}` | `--background` | `#0f0f0f` |
+| `{colors.ink}` | `--foreground` | `#ffffff` |
+| `{colors.surface-card}` | `--surface` | `#181818` |
+| `{colors.surface-card-elevated}` | `--surface-elevated` | `#222222` |
+| `{colors.surface-strong}` | `--surface-strong` | `#2a2a2a` |
+| `{colors.hairline}` | `--border` | `#222222` |
+| `{colors.hairline-strong}` | `--border-strong` | `#333333` |
+| `{colors.primary}` | `--primary` | `#0007cd` |
+| `{colors.primary-active}` | `--primary-active` | `#0005a3` |
+| `{colors.primary-glow}` | `--primary-glow` | `#1a26ff` |
+| `{colors.body}` | `--muted` | `#a8a8a8` |
+| `{colors.muted-soft}` | `--muted-soft` | `#666666` |
+| `{colors.semantic-success}` | `--success` | `#33d17a` |
+| `{colors.semantic-error}` | `--error` | `#ff4d4d` |
+
+Tailwind classes may use arbitrary values or CSS variables during migration, but shared components should gradually converge on the variables above to avoid hardcoded color drift.
 
 ## Layout
 
@@ -391,13 +416,27 @@ Compact developer-ergonomic radii — 8px CTAs, 12-16px cards. Signals "develope
 
 ## Components
 
-### Top Navigation
+### Product App Shell
 
-**`top-nav-dark`** — Default top nav. Background `{colors.canvas}`, text `{colors.body-strong}`, height 64px. Layout: Composio wordmark left, primary horizontal menu (Product / Toolkits / Docs / Pricing / Customers / Blog), GitHub stars + Sign In + "Get started" right.
+The primary application surface is the authenticated app shell, not a marketing top nav. Organization routes use `/[locale]/org/[orgSlug]/*`; super-admin routes use `/[locale]/admin/*`.
+
+**Organization sidebar** — Background `{colors.canvas}`, border `{colors.hairline}`, active nav `{colors.primary}`, inactive text `{colors.body}`, hover surface `{colors.surface-card-elevated}`. Sidebar should remain compact and scannable because it contains many operational routes.
+
+**Admin sidebar** — Same shell language as organization sidebar, with copy and context making the elevated privilege clear. Do not introduce a separate admin theme.
+
+**Content canvas** — Use `{colors.canvas}` or a very close dark app background. Avoid large `bg-white` or `bg-slate-100` regions after migration.
+
+**Context bar** — Use `{colors.surface-card}` with `{colors.hairline}` border for organization/user context. Keep it functional and low emphasis.
+
+### Navigation
+
+**`nav-link`** — 14px / 500 text. Active state uses `{colors.primary}` background and `{colors.on-primary}` text. Inactive state uses `{colors.body}` text and elevated-surface hover. Radius should be `{rounded.md}` or `{rounded.lg}` depending on density.
+
+**`top-nav-dark`** — Optional future marketing/public navigation only. Background `{colors.canvas}`, text `{colors.body-strong}`, height 64px. Do not use marketing navigation patterns inside the authenticated org/admin app.
 
 ### Buttons
 
-**`button-primary`** — The signature Composio Blue CTA. Background `{colors.primary}`, text `{colors.on-primary}`, type `{typography.button}` (14px / 500), padding 10px × 18px, height 40px, rounded `{rounded.md}` (8px).
+**`button-primary`** — The signature Sitework Blue CTA. Background `{colors.primary}`, text `{colors.on-primary}`, type `{typography.button}` (14px / 500), padding 10px × 18px, height 40px, rounded `{rounded.md}` (8px).
 
 **`button-primary-active`** — Press state. Background `{colors.primary-active}`.
 
@@ -409,7 +448,7 @@ Compact developer-ergonomic radii — 8px CTAs, 12-16px cards. Signals "develope
 
 ### Hero & Atmospheric
 
-**`hero-band`** — Homepage hero. Background `{colors.canvas}`, full-width display headline in `{typography.display-mega}` (72px / 500), subhead, two CTAs, and a spotlight-glow backdrop emanating from behind the centered terminal-mockup grid.
+**`hero-band`** — Guest, auth, onboarding, or future public homepage hero. Background `{colors.canvas}`, full-width display headline in `{typography.display-mega}` (72px / 500), subhead, two CTAs, and a spotlight-glow backdrop. For authenticated dashboards, prefer compact `page-header` and metric/data panels over large marketing heroes.
 
 **`terminal-mockup-grid`** — The brand's strongest visual signature. 2×2 grid of dark code/output panels inside a `{rounded.xl}` (16px) container. Background `{colors.canvas-deep}`, padding 32px, gap 16px.
 
@@ -427,6 +466,14 @@ Compact developer-ergonomic radii — 8px CTAs, 12-16px cards. Signals "develope
 
 **`testimonial-card`** — Quote card. Background `{colors.surface-card}`, text `{colors.body}`, rounded `{rounded.lg}`, padding 24px.
 
+**`page-header`** — Product page header for dashboard/admin/business routes. Background `{colors.surface-card}`, border `{colors.hairline}`, title `{colors.ink}`, description `{colors.body}`, eyebrow `{colors.primary}` or `{colors.muted}`. Use compact spacing and optional action slots. Do not use drop-shadow tiers.
+
+**`metric-card`** — Dashboard metric surface. Background `{colors.surface-card}`, border `{colors.hairline}`, large value `{colors.ink}`, label as a small badge or muted caption. Semantic tone may tint the label or left accent, but the card background should stay dark.
+
+**`data-panel`** — Standard container for lists, charts, forms, reports, and admin modules. Background `{colors.surface-card}`, header divider `{colors.hairline}`, title `{colors.ink}`, description `{colors.body}`, body content `{colors.body}`. Nested rows use `{colors.surface-card-elevated}` or transparent bordered rows.
+
+**`list-row`** — For projects, customers, tasks, appointments, quotations, transactions, audit rows, and organization rows. Use elevated dark surface, 1px hairline border, 12px radius, and clear primary/secondary text hierarchy. Hover may lift by brightness step only.
+
 ### Code
 
 **`code-block`** — Inline code/terminal block. Background `{colors.canvas-deep}`, text `{colors.body}` in `{typography.code}`, rounded `{rounded.lg}`, padding 20px.
@@ -437,9 +484,41 @@ Compact developer-ergonomic radii — 8px CTAs, 12-16px cards. Signals "develope
 
 **`search-input`** — Compact search field. Same surface and radius, smaller padding, 40px height.
 
+**`filter-bar`** — Use dark elevated surface or transparent layout with compact controls. Search/select/date inputs should align to 40px height where possible. Clear-filter actions use secondary/outline treatment, not primary blue.
+
+**`form-label`** — 14px / 500, `{colors.body}` or `{colors.body-strong}` depending on density. Avoid dark text classes on dark surfaces.
+
+**`validation-state`** — Errors use `{colors.semantic-error}` with a dark translucent background and strong contrast. Success uses `{colors.semantic-success}`. Warnings use the product semantic warning color guidance below.
+
 ### Tags & Badges
 
 **`badge-pill`** — Small uppercase pill. Background `{colors.surface-card-elevated}`, text `{colors.body-strong}`, type `{typography.caption-uppercase}`, rounded `{rounded.pill}`, padding 4px × 10px.
+
+**`status-badge`** — Product status badge for workflow states. Keep the badge compact and legible on dark surfaces. Use semantic color for text/ring/accent only; avoid filling large areas with bright colors.
+
+### Product Semantic States
+
+Use semantic colors to communicate workflow state without creating new brand colors:
+
+| State | Use | Treatment |
+|---|---|---|
+| Success | active, completed, paid, approved | `{colors.semantic-success}` text/ring/accent on dark surface |
+| Error | destructive, failed, overdue critical | `{colors.semantic-error}` text/ring/accent on dark surface |
+| Warning | pending, waiting approval, overdue soft | amber text/ring/accent on dark surface; keep amber secondary to blue |
+| Neutral | draft, archived, cancelled, no data | `{colors.muted}` text with `{colors.surface-card-elevated}` badge |
+| Brand | primary create/save actions and active nav | `{colors.primary}` fill, not general status decoration |
+
+Warning is allowed for operational clarity even though it is not a brand accent. It should never compete with primary blue CTAs.
+
+### Product Data Surfaces
+
+Reports, audit logs, schedules, budget lines, and transaction histories should prioritize readability:
+
+- Use compact rows with clear separation rather than heavy card shadows.
+- Keep numeric values right-aligned where table-like layouts exist.
+- Use mono font for IDs, codes, timestamps, diffs, and audit metadata when it improves scanning.
+- Use empty states that explain the next productive action.
+- Keep action buttons grouped and predictable: primary for create/save, secondary for view/cancel, destructive for delete/archive.
 
 ### CTA / Footer
 
@@ -452,12 +531,12 @@ Compact developer-ergonomic radii — 8px CTAs, 12-16px cards. Signals "develope
 ## Do's and Don'ts
 
 ### Do
-- Reserve `{colors.primary}` for primary CTAs, wordmark, and spotlight glows.
+- Reserve `{colors.primary}` for primary CTAs, active navigation, wordmark/accent marks, and spotlight glows.
 - Use `{rounded.md}` (8px) for every CTA — not full pills.
 - Use brightness-step ladder for elevation; avoid drop shadows.
-- Pair every hero with a centered radial blue spotlight glow.
-- Render code, CLI commands in JetBrains Mono via `{typography.code}`.
-- Use the 2×2 terminal-mockup grid as the homepage hero anchor.
+- Pair guest/auth/landing heroes with a centered radial blue spotlight glow.
+- Render code, CLI commands, IDs, timestamps, and audit diffs in mono via `{typography.code}`.
+- Use the 2×2 terminal-mockup grid as an optional future public homepage/auth visual anchor.
 
 ### Don't
 - Don't introduce a secondary brand color. Cyan and violet are illustrative-only.
@@ -473,9 +552,9 @@ Compact developer-ergonomic radii — 8px CTAs, 12-16px cards. Signals "develope
 
 | Name | Width | Key Changes |
 |---|---|---|
-| Mobile | < 640px | Hero h1 72→36px; terminal mockup grid collapses to single pane; toolkit grid 1-up; nav hamburger. |
-| Tablet | 640–1024px | Hero h1 56px; terminal mockup grid stays 2×2; toolkit grid 2-up. |
-| Desktop | 1024–1280px | Full hero h1 72px; full 2×2 terminal mockup; toolkit grid 4-up. |
+| Mobile | < 640px | Product shell stacks; sidebar navigation wraps/scrolls; forms become 1-column; hero h1 72→36px where hero exists. |
+| Tablet | 640–1024px | Product forms can use 2 columns; dense lists remain single column when readability requires it. |
+| Desktop | 1024–1280px | Full sidebar + content shell; dashboard grids and data panels can use 2-4 columns depending on density. |
 | Wide | > 1280px | Content caps at 1200px. |
 
 ### Touch Targets
@@ -483,9 +562,9 @@ Compact developer-ergonomic radii — 8px CTAs, 12-16px cards. Signals "develope
 - Search input at 40px.
 
 ### Collapsing Strategy
-- Top nav switches to hamburger below 768px.
-- Terminal mockup 2×2 grid collapses to a single pane on mobile.
-- Toolkit grid: 4-up → 2-up → 1-up.
+- Organization/admin navigation must remain reachable on mobile via stacked, scrollable, or future drawer navigation.
+- Terminal mockup 2×2 grid collapses to a single pane on mobile when used.
+- Product grids collapse from 4-up → 2-up → 1-up based on content density, not decoration.
 - Hero spotlight glow stays at every breakpoint.
 
 ## Iteration Guide
@@ -494,13 +573,14 @@ Compact developer-ergonomic radii — 8px CTAs, 12-16px cards. Signals "develope
 2. CTAs default to `{rounded.md}` (8px). Cards use `{rounded.lg}` or `{rounded.xl}`.
 3. Variants live as separate entries inside `components:`.
 4. Use `{token.refs}` everywhere — never inline hex.
-5. Hover state never documented.
-6. abcDiatype 500 for display, 400/600 for body. JetBrains Mono on every code surface.
-7. Composio Blue stays scarce.
+5. Hover, focus, disabled, and loading states should be documented when a component is migrated.
+6. Keep display at 500, body at 400/600, and mono on code/audit surfaces.
+7. Sitework Blue stays scarce and action-oriented.
 
 ## Known Gaps
 
-- abcDiatype is licensed; Inter is the substitute.
-- Animation timings out of scope.
-- In-product surfaces (toolkit dashboards, agent playground) are behind login walls.
-- Form validation states beyond focus not visible on captured surfaces.
+- abcDiatype is licensed; keep the repo's current font unless a licensed font file is added or a deliberate font migration is planned.
+- Product table/list density still needs implementation examples after the first dark-theme migration.
+- Form validation, loading, disabled, and destructive states need final screenshots from the actual app.
+- Audit readability, report filters, task/schedule density, and transaction rows need product-specific polish beyond this alpha guide.
+- Thai/English copy length can affect layout and should be checked on every migrated page.
