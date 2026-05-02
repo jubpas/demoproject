@@ -41,7 +41,7 @@ export default async function CustomersPage({ params }: Props) {
         note: customer.note,
         createdAt: customer.createdAt.toISOString(),
         quotationCount: customer._count?.quotations ?? 0,
-        appointmentCount: customer._count?.surveys ?? 0,
+        appointmentCount: customer._count?.surveyAppointments ?? 0,
         projectCount: customer._count?.projects ?? 0,
       }))}
       canManage={canManageOrganizationData(membership.role)}

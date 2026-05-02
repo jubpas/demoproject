@@ -22,7 +22,7 @@ export default async function SurveyAppointmentsPage({ params, searchParams }: P
 
   const [quotations, appointments, customers, projects, members] = await Promise.all([
     prisma.quotation.groupBy({ by: ["customerId"], _count: { id: true }, where: { organizationId: organization.id } }),
-    prisma.surveyAppointment.findMany({ where: { organizationId: organization.id }, include: { customer: { select: { name: true } }, project: { select: { name: true } }, assignedTo: { select: { name: true, email: true } }, orderBy: { scheduledStart: "desc" } } }),
+    prisma.surveyAppointment.findMany({ where: { organizationId: organization.id }, include: { customer: { select: { name: true } }, project: { select: { name: true } }, assignedTo: { select: { name: true, email: true } } }, orderBy: { scheduledStart: "desc" } }),
     prisma.customer.findMany({ where: { organizationId: organization.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.project.findMany({ where: { organizationId: organization.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.membership.findMany({ where: { organizationId: organization.id }, include: { user: { select: { id: true, name: true, email: true } } }, orderBy: { createdAt: "asc" } }),

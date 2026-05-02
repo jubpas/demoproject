@@ -36,6 +36,9 @@ type Props = {
       passwordTooShort: string;
       nameRequired: string;
     };
+    common?: {
+      appName: string;
+    };
   };
 };
 
@@ -117,7 +120,7 @@ export function RegisterForm({ locale, callbackUrl, copy }: Props) {
         <div className="flex min-h-[560px] flex-col justify-between px-6 py-8 sm:px-10 sm:py-10 lg:min-h-0 lg:px-14 lg:py-14 xl:px-16" style={{ background: "var(--background)" }}>
           <div className="inline-flex w-fit items-center gap-3 rounded-full border px-4 py-2 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--muted)" }}>
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--success)", boxShadow: "0 0 18px rgba(51,209,122,0.6)" }} />
-            {copy.onboarding?.appName ?? "SiteFlow"}
+            {copy.common?.appName ?? "SiteFlow"}
           </div>
 
           <div className="max-w-4xl space-y-8 py-12 lg:py-16 xl:py-20">
@@ -149,7 +152,7 @@ export function RegisterForm({ locale, callbackUrl, copy }: Props) {
 
           <div className="hidden items-center gap-3 text-sm lg:flex" style={{ color: "var(--muted)" }}>
             <span className="h-px flex-1" style={{ background: "var(--border)" }} />
-            {copy.onboarding?.appName ?? "SiteFlow"}
+            {copy.common?.appName ?? "SiteFlow"}
           </div>
         </div>
 

@@ -558,8 +558,9 @@ const en = {
   quotations: {
     title: "Quotation management",
     subtitle: "Create structured quotations with line items, discounts, and optional VAT.",
-    createTitle: "Create new quotation",
     listTitle: "Quotation list",
+    quotations: "Quotations",
+    createTitle: "Create new quotation",
     emptyTitle: "No quotations yet",
     emptyDescription: "Start by creating the first quotation.",
     quotationNumber: "Quotation number",
@@ -655,6 +656,7 @@ const en = {
     searchAppointmentsPlaceholder: "Search appointments",
     flowHint: "Move from customer survey to quotation, then convert accepted work into a project.",
     quotations: "Quotations",
+    quotationCount: "Quotations",
     pending: "Pending",
     confirmed: "Confirmed",
     completed: "Completed",
