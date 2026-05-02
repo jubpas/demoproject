@@ -60,12 +60,12 @@ export default async function SettingsPage({ params }: Props) {
         </div>
 
         <div className="space-y-6">
-          <aside className="rounded-3xl border border-slate-200 bg-slate-950 p-6 text-white shadow-sm">
-            <p className="text-sm font-medium text-blue-200">Current policy</p>
-            <p className="mt-4 text-3xl font-semibold">
+          <aside className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+            <p className="text-sm font-medium text-blue-700">Current policy</p>
+            <p className="mt-4 text-3xl font-semibold text-slate-950">
               {Math.round(organization.approvalThresholdInCents / 100).toLocaleString()} THB
             </p>
-            <p className="mt-3 text-sm leading-7 text-slate-300">
+            <p className="mt-3 text-sm leading-7 text-slate-600">
               ค่าเริ่มต้น: {Math.round(10000000 / 100).toLocaleString()} THB ({messages.approvalThreshold?.unit || "บาท"})
             </p>
           </aside>

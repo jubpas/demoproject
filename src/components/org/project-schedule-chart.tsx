@@ -124,26 +124,26 @@ export function ProjectScheduleChart({ locale, project, tasks, appointments, cop
 
   return (
     <div className="space-y-5">
-      <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 p-5 text-white">
-        <div className="absolute right-8 top-0 h-32 w-32 rounded-full bg-blue-600/30 blur-3xl" />
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 text-slate-950">
+        <div className="absolute right-8 top-0 h-32 w-32 rounded-full bg-blue-50 blur-3xl" />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">{copy.projects.scheduleRange}</p>
-            <p className="mt-2 text-2xl font-semibold tracking-tight text-white">{formatter.format(rangeStart)} - {formatter.format(rangeEnd)}</p>
-            <p className="mt-2 text-sm text-slate-300">{project.name}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">{copy.projects.scheduleRange}</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{formatter.format(rangeStart)} - {formatter.format(rangeEnd)}</p>
+            <p className="mt-2 text-sm text-slate-500">{project.name}</p>
           </div>
           <div className="grid gap-2 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3">
-              <p className="text-xs text-slate-400">{copy.projects.scheduleTasks}</p>
-              <p className="mt-1 text-xl font-semibold">{datedTasks.length}</p>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <p className="text-xs text-slate-500">{copy.projects.scheduleTasks}</p>
+              <p className="mt-1 text-xl font-semibold text-slate-950">{datedTasks.length}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3">
-              <p className="text-xs text-slate-400">{copy.projects.scheduleAppointments}</p>
-              <p className="mt-1 text-xl font-semibold">{datedAppointments.length}</p>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <p className="text-xs text-slate-500">{copy.projects.scheduleAppointments}</p>
+              <p className="mt-1 text-xl font-semibold text-slate-950">{datedAppointments.length}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3">
-              <p className="text-xs text-slate-400">{copy.projects.scheduleItems}</p>
-              <p className="mt-1 text-xl font-semibold">{scheduledItemCount}</p>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <p className="text-xs text-slate-500">{copy.projects.scheduleItems}</p>
+              <p className="mt-1 text-xl font-semibold text-slate-950">{scheduledItemCount}</p>
             </div>
           </div>
         </div>

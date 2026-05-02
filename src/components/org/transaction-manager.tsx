@@ -172,7 +172,7 @@ function TransactionFields({
       <label className="block space-y-2"><span className="text-sm font-medium text-slate-700">{copy.transactions.vendorName}</span><input value={form.vendorName} onChange={(event) => onChange("vendorName", event.target.value)} className={inputClassName} /></label>
       <label className="block space-y-2"><span className="text-sm font-medium text-slate-700">{copy.transactions.referenceNumber}</span><input value={form.referenceNumber} onChange={(event) => onChange("referenceNumber", event.target.value)} className={inputClassName} /></label>
       <label className="block space-y-2 md:col-span-2"><span className="text-sm font-medium text-slate-700">{copy.transactions.description}</span><textarea rows={3} value={form.description} onChange={(event) => onChange("description", event.target.value)} className={inputClassName} /></label>
-      {allowReceipt ? <label className="block space-y-2 md:col-span-2"><span className="text-sm font-medium text-slate-700">{copy.common.receiptOptional}</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => onReceiptChange?.(event.target.files?.[0] ?? null)} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white" /></label> : null}
+      {allowReceipt ? <label className="block space-y-2 md:col-span-2"><span className="text-sm font-medium text-slate-700">{copy.common.receiptOptional}</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => onReceiptChange?.(event.target.files?.[0] ?? null)} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-200 file:px-3 file:py-2 file:text-sm file:font-medium file:text-slate-700" /></label> : null}
     </div>
   );
 }
@@ -491,12 +491,12 @@ export function TransactionManager({ locale, orgSlug, transactions, projects, bu
                           </label>
                           <label className="block space-y-2">
                             <span className="text-sm font-medium text-slate-700">{copy.common.replaceReceipt}</span>
-                            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setEditingReceiptFile(event.target.files?.[0] ?? null)} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white" />
+                            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setEditingReceiptFile(event.target.files?.[0] ?? null)} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-200 file:px-3 file:py-2 file:text-sm file:font-medium file:text-slate-700" />
                           </label>
                           <p className="text-xs text-slate-500">{copy.common.keepReceipts}</p>
                         </div>
                         <div className="flex gap-3">
-                          <button type="button" onClick={() => void updateTransaction(transaction.id)} className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">{copy.transactions.updateAction}</button>
+                          <button type="button" onClick={() => void updateTransaction(transaction.id)} className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700">{copy.transactions.updateAction}</button>
                           <button type="button" onClick={() => { setEditingId(null); setEditingReceiptFile(null); setRemoveExistingReceipt(false); }} className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700">{copy.common.cancel}</button>
                         </div>
                       </div>

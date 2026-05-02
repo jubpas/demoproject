@@ -96,78 +96,103 @@ export function ResetPasswordForm({
       : null;
 
   return (
-    <div className="glass-panel grid w-full overflow-hidden rounded-[28px] sm:rounded-[36px] lg:grid-cols-[minmax(0,0.92fr)_minmax(520px,0.7fr)]">
-      <div className="flex min-h-[360px] flex-col justify-between border-b border-white/10 bg-slate-950/42 px-6 py-8 sm:px-10 lg:min-h-0 lg:border-b-0 lg:border-r lg:px-12 lg:py-12 xl:px-14">
-        <div className="space-y-5">
-          <p className="text-sm uppercase tracking-[0.28em] text-sky-200/80">{copy.auth.resetPasswordTitle}</p>
-          <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-white sm:text-5xl lg:text-6xl">
-            {copy.auth.resetPasswordTitle}
-          </h1>
-          <p className="max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
-            {copy.auth.resetPasswordDescription}
-          </p>
-        </div>
+    <div className="surface-panel-strong w-full overflow-hidden rounded-xl sm:rounded-2xl">
+      <div className="grid min-h-[calc(100vh-5.25rem)] lg:min-h-[calc(100vh-6rem)] lg:grid-cols-[minmax(0,1.12fr)_minmax(420px,0.68fr)]">
+        <div className="flex min-h-[560px] flex-col justify-between px-6 py-8 sm:px-10 sm:py-10 lg:min-h-0 lg:px-14 lg:py-14 xl:px-16" style={{ background: "var(--background)" }}>
+          <div className="inline-flex w-fit items-center gap-3 rounded-full border px-4 py-2 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--muted)" }}>
+            <span className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--success)", boxShadow: "0 0 18px rgba(51,209,122,0.6)" }} />
+            SiteFlow
+          </div>
 
-        <div className="mt-10 rounded-3xl border border-white/12 bg-white/8 p-5 text-sm leading-7 text-slate-300 sm:p-6">
-          <p className="font-medium text-white">{copy.auth.backToLogin}</p>
-          <p className="mt-2">{copy.auth.resetPasswordDescription}</p>
-        </div>
-      </div>
-
-      <div className="flex items-center bg-slate-950/72 px-5 py-8 sm:px-8 lg:px-10 xl:px-12">
-        <div className="mx-auto w-full max-w-2xl">
-          {blockedMessage ? (
+          <div className="max-w-4xl space-y-8 py-12 lg:py-16 xl:py-20">
             <div className="space-y-5">
-              <div className="rounded-2xl border border-red-400/35 bg-red-500/12 px-4 py-4 text-sm text-red-100">
-                {blockedMessage}
-              </div>
-              <p className="text-center text-sm text-slate-300">
-                <Link href={`/${locale}/forgot-password`} className="font-medium text-sky-300 hover:text-sky-200">
-                  {copy.auth.forgotPassword}
-                </Link>
+              <p className="text-sm uppercase tracking-[0.32em] text-[var(--primary)]">{copy.auth.resetPasswordTitle}</p>
+              <h1 className="max-w-4xl text-4xl font-medium leading-tight text-[var(--foreground)] sm:text-6xl lg:text-7xl">
+                {copy.auth.resetPasswordTitle}
+              </h1>
+              <p className="max-w-2xl text-base leading-7 text-[var(--muted)] sm:text-lg">
+                {copy.auth.resetPasswordDescription}
               </p>
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {error ? (
-                <div className="rounded-2xl border border-red-400/35 bg-red-500/12 px-4 py-3 text-sm text-red-100">
-                  {error}
+
+            <div className="rounded-xl border p-5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+              <p className="text-sm text-[var(--muted)]">
+                <span className="text-base font-medium text-[var(--foreground)]">{copy.auth.backToLogin}</span>
+              </p>
+              <p className="mt-2 text-sm text-[var(--muted)]">{copy.auth.resetPasswordDescription}</p>
+            </div>
+          </div>
+
+          <div className="hidden items-center gap-3 text-sm lg:flex" style={{ color: "var(--muted)" }}>
+            <span className="h-px flex-1" style={{ background: "var(--border)" }} />
+            SiteFlow
+          </div>
+        </div>
+
+        <div className="flex items-center border-t px-5 py-8 sm:px-8 lg:border-l lg:border-t-0 lg:px-10 xl:px-12" style={{ borderTopColor: "var(--border)", background: "var(--surface)" }}>
+          <div className="mx-auto w-full max-w-lg">
+            <div className="mb-8 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[var(--primary)]">{copy.auth.resetPasswordTitle}</p>
+              <h2 className="text-3xl font-medium text-[var(--foreground)] sm:text-4xl">{copy.auth.resetPasswordTitle}</h2>
+              <p className="text-sm leading-6 text-[var(--muted)]">{copy.auth.resetPasswordDescription}</p>
+            </div>
+
+            {blockedMessage ? (
+              <div className="space-y-5">
+                <div className="rounded-md border px-4 py-4 text-sm" style={{ borderColor: "rgba(255,77,77,0.35)", background: "rgba(255,77,77,0.12)", color: "#ff4d4d" }}>
+                  {blockedMessage}
                 </div>
-              ) : null}
+                <p className="text-center text-sm text-[var(--muted)]">
+                  <Link href={`/${locale}/forgot-password`} className="font-medium text-[var(--primary)] hover:text-[var(--primary-glow)]">
+                    {copy.auth.forgotPassword}
+                  </Link>
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {error ? (
+                  <div className="rounded-md border px-4 py-3 text-sm" style={{ borderColor: "rgba(255,77,77,0.35)", background: "rgba(255,77,77,0.12)", color: "#ff4d4d" }}>
+                    {error}
+                  </div>
+                ) : null}
 
-              <label className="block space-y-2">
-                <span className="text-sm font-medium text-slate-200">{copy.auth.newPassword}</span>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  required
-                  placeholder={copy.auth.passwordPlaceholder}
-                  className="w-full rounded-2xl border border-white/10 bg-white/8 px-4 py-3 text-white outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white/10"
-                />
-              </label>
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-[var(--foreground)]">{copy.auth.newPassword}</span>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    required
+                    placeholder={copy.auth.passwordPlaceholder}
+                    className="w-full rounded-md border px-4 py-3 outline-none transition placeholder:text-[var(--muted-soft)] focus:border-[var(--primary)]"
+                    style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--foreground)" }}
+                  />
+                </label>
 
-              <label className="block space-y-2">
-                <span className="text-sm font-medium text-slate-200">{copy.auth.confirmNewPassword}</span>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
-                  required
-                  placeholder={copy.auth.confirmPasswordPlaceholder}
-                  className="w-full rounded-2xl border border-white/10 bg-white/8 px-4 py-3 text-white outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white/10"
-                />
-              </label>
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-[var(--foreground)]">{copy.auth.confirmNewPassword}</span>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    required
+                    placeholder={copy.auth.confirmPasswordPlaceholder}
+                    className="w-full rounded-md border px-4 py-3 outline-none transition placeholder:text-[var(--muted-soft)] focus:border-[var(--primary)]"
+                    style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--foreground)" }}
+                  />
+                </label>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-2xl bg-gradient-to-r from-blue-500 via-blue-400 to-red-500 px-4 py-3 font-semibold text-white shadow-[0_16px_48px_rgba(37,99,235,0.28)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {loading ? copy.auth.resetPasswordLoading : copy.auth.resetPasswordAction}
-              </button>
-            </form>
-          )}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full rounded-md px-4 py-3 font-medium text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{ background: "var(--primary)" }}
+                >
+                  {loading ? copy.auth.resetPasswordLoading : copy.auth.resetPasswordAction}
+                </button>
+              </form>
+            )}
+          </div>
         </div>
       </div>
     </div>

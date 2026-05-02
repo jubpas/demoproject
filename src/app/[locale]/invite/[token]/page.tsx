@@ -38,7 +38,7 @@ export default async function InvitePage({ params }: Props) {
 
   return (
     <main className="min-h-screen overflow-hidden px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-6">
-      <div className="bg-mesh flex min-h-[calc(100vh-2rem)] items-center justify-center rounded-[32px] border border-white/10 px-3 py-6 shadow-[0_28px_120px_rgba(2,6,23,0.45)] sm:rounded-[40px] sm:px-5 sm:py-8 lg:min-h-[calc(100vh-3rem)] lg:px-6 lg:py-10">
+      <div className="bg-white flex min-h-[calc(100vh-2rem)] items-center justify-center rounded-[32px] border border-slate-200 px-3 py-6 shadow-slate-200/50 sm:rounded-[40px] sm:px-5 sm:py-8 lg:min-h-[calc(100vh-3rem)] lg:px-6 lg:py-10">
         <InviteAcceptance
           locale={validLocale}
           token={token}

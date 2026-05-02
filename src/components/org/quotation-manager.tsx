@@ -234,7 +234,7 @@ function Fields({
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-        <div className="mb-4 flex items-center justify-between"><h3 className="font-semibold text-slate-900">Items</h3><button type="button" onClick={onAddItem} className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-medium text-white">{copy.quotations.addItem}</button></div>
+        <div className="mb-4 flex items-center justify-between"><h3 className="font-semibold text-slate-900">Items</h3><button type="button" onClick={onAddItem} className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-blue-700">{copy.quotations.addItem}</button></div>
         <div className="space-y-3">
           {form.items.map((item, index) => {
             const total = (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0);
@@ -372,7 +372,7 @@ export function QuotationManager({ locale, quotations, customers, projects, orgS
           <div className="flex flex-wrap gap-2">
             <Link href={`/${locale}/org/${orgSlug}/customers`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">{copy.quotations.customer}</Link>
             <Link href={`/${locale}/org/${orgSlug}/survey-appointments`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">{copy.quotations.surveyAppointments}</Link>
-            <Link href={`/${locale}/org/${orgSlug}/projects`} className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800">{copy.quotations.project}</Link>
+            <Link href={`/${locale}/org/${orgSlug}/projects`} className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-blue-700">{copy.quotations.project}</Link>
           </div>
         </div>
       </section>
@@ -425,7 +425,7 @@ export function QuotationManager({ locale, quotations, customers, projects, orgS
                       <div className="space-y-4">
                         <Fields form={editingForm} customers={customers} projects={projects} copy={copy} onChange={updateEditingForm} onItemChange={(index, field, value) => updateItems("edit", index, field, value)} onAddItem={() => addItem("edit")} onRemoveItem={(index) => removeItem("edit", index)} />
                         <div className="flex gap-3">
-                          <button type="button" onClick={() => void submit("PATCH", item.id)} className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">{copy.quotations.updateAction}</button>
+                          <button type="button" onClick={() => void submit("PATCH", item.id)} className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700">{copy.quotations.updateAction}</button>
                           <button type="button" onClick={() => setEditingId(null)} className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700">{copy.common.cancel}</button>
                         </div>
                       </div>

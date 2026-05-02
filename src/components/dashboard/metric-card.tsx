@@ -1,25 +1,29 @@
 type Props = {
   label: string;
   value: string;
-  tone?: "blue" | "green" | "red" | "slate";
+  tone?: "blue" | "green" | "red" | "slate" | "success" | "error" | "warning" | "neutral";
   hint?: string;
 };
 
-const toneMap = {
-  blue: "bg-blue-50 text-blue-700 ring-blue-100",
-  green: "bg-emerald-50 text-emerald-700 ring-emerald-100",
-  red: "bg-red-50 text-red-700 ring-red-100",
-  slate: "bg-slate-100 text-slate-700 ring-slate-200",
+const toneMap: Record<string, string> = {
+  blue: "text-[var(--primary)]",
+  green: "text-[var(--success)]",
+  red: "text-[var(--error)]",
+  slate: "text-[var(--muted)]",
+  success: "text-[var(--success)]",
+  error: "text-[var(--error)]",
+  warning: "text-amber-400",
+  neutral: "text-[var(--muted)]",
 };
 
-export function MetricCard({ label, value, tone = "slate", hint }: Props) {
+export function MetricCard({ label, value, tone = "neutral", hint }: Props) {
   return (
-    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ${toneMap[tone]}`}>
+    <article className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+      <div className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] ${toneMap[tone]}`}>
         {label}
       </div>
-      <p className="mt-4 text-3xl font-semibold text-slate-950">{value}</p>
-      {hint ? <p className="mt-2 text-sm text-slate-500">{hint}</p> : null}
+      <p className="mt-4 text-3xl font-medium text-[var(--foreground)]">{value}</p>
+      {hint ? <p className="mt-2 text-sm text-[var(--muted)]">{hint}</p> : null}
     </article>
   );
 }

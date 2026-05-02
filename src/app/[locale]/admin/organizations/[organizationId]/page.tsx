@@ -84,7 +84,7 @@ export default async function AdminOrganizationDetailPage({ params }: Props) {
                 <textarea name="description" rows={4} defaultValue={organization.description || ""} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100" />
               </label>
             </div>
-            <button type="submit" className="w-full rounded-2xl bg-slate-950 px-4 py-3 font-semibold text-white transition hover:bg-slate-800">
+            <button type="submit" className="w-full rounded-2xl bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700">
               {messages.common.save}
             </button>
           </form>

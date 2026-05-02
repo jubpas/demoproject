@@ -38,7 +38,7 @@ export function LanguageSwitcher({ locale, labels }: Props) {
   }
 
   return (
-    <div className="inline-flex rounded-full border border-white/12 bg-white/6 p-1 text-xs font-medium text-slate-200">
+    <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1 text-xs font-medium text-slate-600">
       {locales.map((item) => {
         const active = item === locale;
 

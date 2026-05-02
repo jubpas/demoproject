@@ -93,7 +93,7 @@ export default async function AdminDashboardPage({ params }: Props) {
               </label>
             </div>
 
-            <button type="submit" className="w-full rounded-2xl bg-slate-950 px-4 py-3 font-semibold text-white transition hover:bg-slate-800">
+            <button type="submit" className="w-full rounded-2xl bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700">
               {messages.admin.createOrganizationAction}
             </button>
           </form>

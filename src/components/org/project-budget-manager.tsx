@@ -280,7 +280,7 @@ export function ProjectBudgetManager({ locale, orgSlug, projectId, canManage, bu
             </div>
             {editingId ? (
               <div className="flex gap-3">
-                <button type="button" disabled={submitting} onClick={() => void updateBudgetLine(editingId)} className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">{copy.projects.updateBudgetLineAction}</button>
+                <button type="button" disabled={submitting} onClick={() => void updateBudgetLine(editingId)} className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700">{copy.projects.updateBudgetLineAction}</button>
                 <button type="button" onClick={() => setEditingId(null)} className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700">{copy.common.cancel}</button>
               </div>
             ) : (

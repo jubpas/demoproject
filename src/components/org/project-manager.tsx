@@ -357,7 +357,7 @@ export function ProjectManager({ locale, orgSlug, projects, customers, canManage
                               <div className="space-y-4 rounded-2xl bg-slate-50 p-4">
                                 <ProjectFields form={editingForm} customers={customers} copy={copy} onChange={updateEditingForm} />
                                 <div className="flex gap-3">
-                                  <button type="button" onClick={() => void submitProject("PATCH", project.id)} className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">{copy.projects.updateAction}</button>
+                                  <button type="button" onClick={() => void submitProject("PATCH", project.id)} className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700">{copy.projects.updateAction}</button>
                                   <button type="button" onClick={() => setEditingId(null)} className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700">{copy.common.cancel}</button>
                                 </div>
                               </div>
@@ -391,7 +391,7 @@ export function ProjectManager({ locale, orgSlug, projects, customers, canManage
                         <div className="space-y-4">
                           <ProjectFields form={editingForm} customers={customers} copy={copy} onChange={updateEditingForm} />
                           <div className="flex gap-3">
-                            <button type="button" onClick={() => void submitProject("PATCH", project.id)} className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">{copy.projects.updateAction}</button>
+                            <button type="button" onClick={() => void submitProject("PATCH", project.id)} className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700">{copy.projects.updateAction}</button>
                             <button type="button" onClick={() => setEditingId(null)} className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700">{copy.common.cancel}</button>
                           </div>
                         </div>

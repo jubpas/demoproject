@@ -1,6 +1,10 @@
+import "server-only";
+
 import { createHash, randomBytes } from "crypto";
 import prisma from "@/lib/db";
 import type { Locale } from "@/lib/locales";
+
+const RESET_TOKEN_LIFETIME_MS = 30 * 60 * 1000; // 30 minutes
 
 export const passwordResetLifetimeInMinutes = 30;
 
@@ -10,9 +14,71 @@ type DeliveryResult = {
   mode: "mock" | "email" | "unavailable";
 };
 
-export function canSendPasswordResetEmails() {
-  return Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
+// --- New token functions (patch: single-use enforcement) ---
+
+export function createResetToken(): string {
+  return randomBytes(32).toString("hex");
 }
+
+export function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+export async function issuePasswordResetToken(userId: string): Promise<string> {
+  // Clean up any existing unused tokens for this user first
+  await prisma.passwordResetToken.deleteMany({
+    where: {
+      userId,
+      usedAt: null,
+    },
+  });
+
+  const token = createResetToken();
+  const tokenHash = hashToken(token);
+  const expiresAt = new Date(Date.now() + RESET_TOKEN_LIFETIME_MS);
+
+  await prisma.passwordResetToken.create({
+    data: {
+      userId,
+      tokenHash,
+      expiresAt,
+    },
+  });
+
+  return token;
+}
+
+export async function verifyPasswordResetToken(
+  token: string,
+  userId: string
+): Promise<boolean> {
+  const tokenHash = hashToken(token);
+
+  const resetToken = await prisma.passwordResetToken.findFirst({
+    where: {
+      userId,
+      tokenHash,
+      expiresAt: {
+        gt: new Date(),
+      },
+      usedAt: null, // Single-use enforcement: must not have been used
+    },
+  });
+
+  if (!resetToken) {
+    return false;
+  }
+
+  // Mark token as used atomically - prevents reuse
+  await prisma.passwordResetToken.update({
+    where: { id: resetToken.id },
+    data: { usedAt: new Date() },
+  });
+
+  return true;
+}
+
+// --- Existing helpers (preserved for reset-password flows) ---
 
 function canExposeMockResetUrl() {
   return process.env.NODE_ENV !== "production";
@@ -28,59 +94,31 @@ function getBaseUrl(fallbackOrigin?: string) {
   );
 }
 
-export function createPasswordResetToken() {
-  return randomBytes(32).toString("hex");
-}
-
-export function hashPasswordResetToken(token: string) {
-  return createHash("sha256").update(token).digest("hex");
-}
-
-export function getPasswordResetExpiryDate() {
-  return new Date(Date.now() + passwordResetLifetimeInMinutes * 60 * 1000);
-}
-
 export function buildPasswordResetUrl(locale: Locale, token: string, fallbackOrigin?: string) {
   const baseUrl = getBaseUrl(fallbackOrigin);
   return new URL(`/${locale}/reset-password/${token}`, baseUrl).toString();
 }
 
-export async function issuePasswordResetToken(userId: string) {
-  const rawToken = createPasswordResetToken();
-  const tokenHash = hashPasswordResetToken(rawToken);
+export function isPasswordResetTokenExpired(expiresAt: Date) {
+  return expiresAt.getTime() <= Date.now();
+}
 
-  await prisma.passwordResetToken.updateMany({
-    where: {
-      userId,
-      usedAt: null,
-    },
-    data: {
-      usedAt: new Date(),
-    },
-  });
+// Alias for backwards compatibility with the old password-reset token helpers
+export function createPasswordResetToken() {
+  return createResetToken();
+}
 
-  await prisma.passwordResetToken.create({
-    data: {
-      userId,
-      tokenHash,
-      expiresAt: getPasswordResetExpiryDate(),
-    },
-  });
-
-  return rawToken;
+export function hashPasswordResetToken(token: string) {
+  return hashToken(token);
 }
 
 export async function getValidPasswordResetToken(token: string) {
-  const tokenHash = hashPasswordResetToken(token);
+  const tokenHash = hashToken(token);
 
-  return prisma.passwordResetToken.findUnique({
+  return prisma.passwordResetToken.findFirst({
     where: { tokenHash },
     include: { user: true },
   });
-}
-
-export function isPasswordResetTokenExpired(expiresAt: Date) {
-  return expiresAt.getTime() <= Date.now();
 }
 
 async function sendViaResend({ to, resetUrl, locale }: { to: string; resetUrl: string; locale: Locale }) {
@@ -91,15 +129,15 @@ async function sendViaResend({ to, resetUrl, locale }: { to: string; resetUrl: s
     return false;
   }
 
-  const subject = locale === "th" ? "ลิงก์รีเซ็ตรหัสผ่าน" : "Reset your password";
+  const subject = locale === "th" ? "ลิงก์รีเซตรหัสผ่าน" : "Reset your password";
   const intro =
     locale === "th"
-      ? "เราได้รับคำขอรีเซ็ตรหัสผ่านสำหรับบัญชีของคุณ"
+      ? "เราได้รับคำขอรีเซตรหัสผ่านสำหรับบัญชีของคุณ"
       : "We received a request to reset your account password.";
-  const cta = locale === "th" ? "รีเซ็ตรหัสผ่าน" : "Reset password";
+  const cta = locale === "th" ? "รีเซตรหัสผ่าน" : "Reset password";
   const footer =
     locale === "th"
-      ? "หากคุณไม่ได้เป็นผู้ขอ คุณสามารถละเว้นอีเมลนี้ได้"
+      ? "หากคุณไม่ได้เป็นผู้ขอ คุณสามารถละเว้นอีเมลนี้ได้เลย"
       : "If you did not request this, you can safely ignore this email.";
 
   const response = await fetch("https://api.resend.com/emails", {
@@ -128,6 +166,10 @@ async function sendViaResend({ to, resetUrl, locale }: { to: string; resetUrl: s
   });
 
   return response.ok;
+}
+
+export function canSendPasswordResetEmails() {
+  return Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
 }
 
 export async function deliverPasswordResetLink({

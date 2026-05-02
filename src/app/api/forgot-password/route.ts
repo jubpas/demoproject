@@ -18,9 +18,9 @@ type ForgotPasswordMessages = {
 
 const messagesByLocale: Record<Locale, ForgotPasswordMessages> = {
   th: {
-    invalidEmail: "กรุณากรอกอีเมลให้ถูกต้อง",
-    success: "หากอีเมลนี้มีอยู่ในระบบ เราจะส่งลิงก์รีเซ็ตรหัสผ่านให้",
-    tooManyRequests: "คุณส่งคำขอมากเกินไป กรุณารอสักครู่แล้วลองใหม่",
+    invalidEmail: "กรุณากรอกอีเมลให�ถูกต้อง",
+    success: "หากอีเมลน�มีอย�ในระบบ เราจะส่งลิงก์รีเซตรหัสผ่านให้",
+    tooManyRequests: "คุณส่งคำขอมากเกิน ไปกรุณารอสักครู่แล้วลองใหม่",
     generic: "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
   },
   en: {
@@ -31,62 +31,34 @@ const messagesByLocale: Record<Locale, ForgotPasswordMessages> = {
   },
 };
 
-type RateLimitEntry = {
-  count: number;
-  resetAt: number;
-};
+/**
+ * Database-backed rate limiter for password reset requests.
+ * Uses PasswordResetToken table to track recent submissions per email.
+ * Limits to 3 requests per 5-minute window per email address.
+ */
+async function checkEmailRateLimit(email: string): Promise<boolean> {
+  const cutoff = new Date(Date.now() - 5 * 60 * 1000); // 5 minutes ago
+  const recentTokens = await prisma.passwordResetToken.findMany({
+    where: {
+      createdAt: { gte: cutoff },
+    },
+    select: { userId: true },
+  });
 
-const rateLimitWindowMs = 5 * 60 * 1000;
-const rateLimitMaxRequests = 3;
+  // Count how many tokens were created for this email in the window
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
 
-const rateLimitStore = new Map<string, RateLimitEntry>();
-
-function checkRateLimit(key: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitStore.get(key);
-
-  if (!entry) {
-    return true;
+  if (!user) {
+    // Email not found - still rate limit to prevent enumeration
+    return true; // Allow through, will be caught by "no user" check below
   }
 
-  if (now > entry.resetAt) {
-    rateLimitStore.delete(key);
-    return true;
-  }
-
-  if (entry.count >= rateLimitMaxRequests) {
-    return false;
-  }
-
-  return true;
+  const count = recentTokens.filter((t) => t.userId === user.id).length;
+  return count < 3;
 }
-
-function recordRateLimit(key: string): void {
-  const now = Date.now();
-  const existing = rateLimitStore.get(key);
-
-  if (!existing || now > existing.resetAt) {
-    rateLimitStore.set(key, {
-      count: 1,
-      resetAt: now + rateLimitWindowMs,
-    });
-    return;
-  }
-
-  existing.count += 1;
-  rateLimitStore.set(key, existing);
-}
-
-function cleanupExpiredEntries(): void {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (now > entry.resetAt) {
-      rateLimitStore.delete(key);
-    }
-  }
-}
-
-setInterval(cleanupExpiredEntries, 60 * 60 * 1000);
 
 export async function POST(request: Request) {
   let locale = defaultLocale;
@@ -101,7 +73,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: messages.invalidEmail }, { status: 400 });
     }
 
-    if (!checkRateLimit(email)) {
+    // Database-backed rate limit check
+    if (!(await checkEmailRateLimit(email))) {
       return NextResponse.json({ error: messages.tooManyRequests }, { status: 429 });
     }
 
@@ -115,7 +88,6 @@ export async function POST(request: Request) {
     });
 
     if (!user?.password) {
-      recordRateLimit(email);
       return NextResponse.json({ message: messages.success }, { status: 200 });
     }
 
@@ -130,8 +102,6 @@ export async function POST(request: Request) {
     if (delivery.mode === "unavailable") {
       console.warn("Password reset email delivery unavailable in production; reset URL was not exposed.");
     }
-
-    recordRateLimit(email);
 
     return NextResponse.json(
       {

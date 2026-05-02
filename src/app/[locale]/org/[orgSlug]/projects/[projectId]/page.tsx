@@ -220,7 +220,7 @@ export default async function ProjectDetailPage({ params }: Props) {
           <div className="flex flex-wrap gap-2">
             <Link
               href={`/${validLocale}/org/${orgSlug}/projects/${project.id}/tasks`}
-              className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
+              className="rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
             >
               {messages.projects.viewTasks}
             </Link>

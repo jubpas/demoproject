@@ -304,7 +304,7 @@ export function CustomerManager({ locale, orgSlug, customers, canManage, copy }:
                               <div className="space-y-4 rounded-2xl bg-slate-50 p-4">
                                 <CustomerFields form={editingForm} onChange={updateEditingForm} copy={copy} />
                                 <div className="flex gap-3">
-                                  <button type="button" onClick={() => void submitCustomer("PATCH", customer.id)} className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
+                                  <button type="button" onClick={() => void submitCustomer("PATCH", customer.id)} className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700">
                                     {copy.customers.updateAction}
                                   </button>
                                   <button type="button" onClick={() => setEditingId(null)} className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700">
@@ -366,7 +366,7 @@ export function CustomerManager({ locale, orgSlug, customers, canManage, copy }:
                         <div className="space-y-4">
                           <CustomerFields form={editingForm} onChange={updateEditingForm} copy={copy} />
                           <div className="flex gap-3">
-                            <button type="button" onClick={() => void submitCustomer("PATCH", customer.id)} className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">
+                            <button type="button" onClick={() => void submitCustomer("PATCH", customer.id)} className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700">
                               {copy.customers.updateAction}
                             </button>
                             <button type="button" onClick={() => setEditingId(null)} className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700">

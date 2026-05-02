@@ -355,7 +355,7 @@ export function ProjectTaskManager({ locale, orgSlug, projectId, projectName, ta
                       <div className="space-y-4">
                         <TaskFields form={editingForm} members={members} copy={copy} onChange={updateEditingForm} />
                         <div className="flex flex-wrap gap-3">
-                          <button type="button" onClick={() => void submitTask("PATCH", task.id)} className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-medium text-white">{copy.projects.updateTaskAction}</button>
+                          <button type="button" onClick={() => void submitTask("PATCH", task.id)} className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700">{copy.projects.updateTaskAction}</button>
                           <button type="button" onClick={() => setEditingId(null)} className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700">{copy.common.cancel}</button>
                         </div>
                       </div>

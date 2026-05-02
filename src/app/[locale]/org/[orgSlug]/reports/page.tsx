@@ -219,41 +219,41 @@ export default async function ReportsPage({ params, searchParams }: Props) {
         <MetricCard label={messages.reports.budgetUsage} value={`${organizationUsagePercent.toFixed(1)}%`} tone="slate" />
       </section>
 
-      <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 p-5 text-white">
-        <div className="absolute right-10 top-0 h-40 w-40 rounded-full bg-blue-600/30 blur-3xl" />
+      <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 text-slate-950">
+        <div className="absolute right-10 top-0 h-40 w-40 rounded-full bg-blue-50 blur-3xl" />
         <div className="relative grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">{messages.reports.periodLabel}</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight">{messages.reports.profitLossTitle}</h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">{messages.reports.profitLossSubtitle}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">{messages.reports.periodLabel}</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">{messages.reports.profitLossTitle}</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">{messages.reports.profitLossSubtitle}</p>
           </div>
-          <form className="grid gap-3 rounded-2xl border border-white/10 bg-white/8 p-4 md:grid-cols-2 xl:grid-cols-4">
+          <form className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-2 xl:grid-cols-4">
             <label className="block space-y-2">
-              <span className="text-xs font-medium text-slate-300">{messages.reports.from}</span>
-              <input type="date" name="from" defaultValue={fromDateValue} className="w-full rounded-lg border border-white/10 bg-[#181818] px-3 py-2 text-sm text-white outline-none transition focus:border-blue-400" />
+              <span className="text-xs font-medium text-slate-600">{messages.reports.from}</span>
+              <input type="date" name="from" defaultValue={fromDateValue} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
             </label>
             <label className="block space-y-2">
-              <span className="text-xs font-medium text-slate-300">{messages.reports.to}</span>
-              <input type="date" name="to" defaultValue={toDateValue} className="w-full rounded-lg border border-white/10 bg-[#181818] px-3 py-2 text-sm text-white outline-none transition focus:border-blue-400" />
+              <span className="text-xs font-medium text-slate-600">{messages.reports.to}</span>
+              <input type="date" name="to" defaultValue={toDateValue} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
             </label>
             <label className="block space-y-2">
-              <span className="text-xs font-medium text-slate-300">{messages.reports.project}</span>
-              <select name="projectId" defaultValue={projectIdFilter} className="w-full rounded-lg border border-white/10 bg-[#181818] px-3 py-2 text-sm text-white outline-none transition focus:border-blue-400">
+              <span className="text-xs font-medium text-slate-600">{messages.reports.project}</span>
+              <select name="projectId" defaultValue={projectIdFilter} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
                 <option value="">{messages.reports.selectProject}</option>
                 {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
               </select>
             </label>
             <label className="block space-y-2">
-              <span className="text-xs font-medium text-slate-300">{messages.transactions.type}</span>
-              <select name="type" defaultValue={typeFilter} className="w-full rounded-lg border border-white/10 bg-[#181818] px-3 py-2 text-sm text-white outline-none transition focus:border-blue-400">
+              <span className="text-xs font-medium text-slate-600">{messages.transactions.type}</span>
+              <select name="type" defaultValue={typeFilter} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
                 <option value="">{messages.reports.allTypes}</option>
                 <option value="INCOME">{messages.reports.income}</option>
                 <option value="EXPENSE">{messages.reports.expense}</option>
               </select>
             </label>
             <div className="flex flex-wrap gap-3 md:col-span-2 xl:col-span-4">
-              <button type="submit" className="rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800">{messages.reports.apply}</button>
-              <Link href={`/${validLocale}/org/${orgSlug}/reports`} className="rounded-lg border border-white/10 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-white/10">{messages.reports.clearAll}</Link>
+              <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">{messages.reports.apply}</button>
+              <Link href={`/${validLocale}/org/${orgSlug}/reports`} className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100">{messages.reports.clearAll}</Link>
             </div>
           </form>
         </div>

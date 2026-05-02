@@ -432,7 +432,7 @@ export function MemberManager({
                   <div>
                     <p className="font-medium text-slate-950">{invite.email}</p>
                     <p className="mt-1 text-sm text-slate-500">{roleLabels[invite.role]} • {statusLabels[invite.status]}</p>
-                    <p className="mt-1 text-xs text-slate-400">{invite.invitedByName} • {new Date(invite.expiresAt).toLocaleString()}</p>
+                    <p className="mt-1 text-xs text-slate-400">{invite.invitedByName} • {new Date(invite.expiresAt).toLocaleString(locale)}</p>
                   </div>
                   <button
                     type="button"
