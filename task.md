@@ -34,20 +34,25 @@
 - Dashboard workload pulse, project health snapshot, และ recent activity feed
 - Project Task/Schedule polish พร้อม filters, overdue highlight, schedule summary และ timeline readability
 - Filters/Search เพิ่มเติมใน Projects, Transactions และ Tasks
+- Survey-to-Quotation workflow tracing: `surveyAppointmentId` บน Quotation model, ความเชื่่อมโยง 2 ด้าน
+- Quotation detail: context nav bar ไป customer/survey/project หน้า
+- Quotation list: แสดง source survey reference
+- Customer Manager: linked counts badge (Q/S/P) ในตารางและ modal
+- Survey Appointment Manager: quotation count badge ต่อรายการ
+- Customer pages: fetch `_count` aggregation สำหรับ linked counts
 
 กำลังทำรอบนี้:
 
-- เก็บ product flow หลักให้ครบและนิ่งก่อนกลับไป deploy readiness
-- ปรับ UI หลัง login ให้สอดคล้องกับ `DESIGN.md` แบบ incremental โดยไม่รื้อ light admin dashboard เดิมทันที
+- เก็บ product flow หลักให้ครบและนิ่งก่อนกลับไปแล้ว deploy readiness
+- ปรับ UI หลัง login ให้สอดคล้องกบ์ `DESIGN.md` แบบ incrementally โดยไม่รื้อ light admin dashboard เดิมทันที
 - จัดเอกสาร task แยกจาก project plan ให้ตรงกับสภาพ repo ปัจจุบัน
-- เก็บ permission layer ให้รองรับ super admin และ organization members flow ให้ชัดขึ้นในจุดที่ยังเหลือ
+- เก็บ permission layer ให้รองรับ super admin และ organization members flow ให้ชัดเจนในจุดที่ยังเหลือ
 
 ถัดไปทันที:
 
-- เก็บ Customer/Survey Appointment/Quotation flow polish ให้ลื่นขึ้น
-- เพิ่ม linked action/shortcut ระหว่าง Customer -> Survey Appointment -> Quotation -> Project
-- เพิ่ม filters/search ใน Quotation และ Survey Appointment ถ้ายังไม่ครบ
-- เพิ่ม member audit และ owner transfer flow ในรอบถัดไป
+- Phase 15: member audit trail + owner transfer flow
+- Phase 16: quotation filters/search polish + export CSV
+- Phase 17: survey appointment detail page with quotation/project linking
 
 อัปเดตล่าสุด:
 
