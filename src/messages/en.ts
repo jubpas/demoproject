@@ -608,6 +608,7 @@ const en = {
     clearFilters: "Clear filters",
     searchQuotationsPlaceholder: "Search quotations",
     flowHint: "Follow the business flow from customer survey to quotation and project handoff.",
+    sourceSurvey: "Source survey",
   },
   approvalThreshold: {
     title: "Approval threshold",

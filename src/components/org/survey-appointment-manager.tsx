@@ -29,6 +29,7 @@ type SurveyAppointmentItem = {
   scheduledEnd: string | null;
   status: SurveyAppointmentStatus;
   note: string | null;
+  quotationCount: number;
 };
 
 type AppointmentForm = {
@@ -107,6 +108,7 @@ type Props = {
       searchAppointmentsPlaceholder: string;
       flowHint: string;
       quotations: string;
+      quotationCount: string;
     };
   };
 };
@@ -308,10 +310,76 @@ export function SurveyAppointmentManager({ locale, orgSlug, appointments, custom
             </select>
             <button type="button" onClick={clearFilters} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-white">{copy.surveyAppointments.clearFilters}</button>
           </div>
-          {filteredAppointments.length === 0 ? <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center"><p className="text-lg font-medium text-slate-900">{copy.surveyAppointments.emptyTitle}</p><p className="mt-2 text-sm text-slate-500">{copy.surveyAppointments.emptyDescription}</p></div> : <div className="space-y-4">{filteredAppointments.map((item) => {
-            const isEditing = editingId === item.id;
-            return <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">{isEditing ? <div className="space-y-4"><Fields form={editingForm} customers={customers} projects={projects} members={members} copy={copy} onChange={updateEditingForm} /><div className="flex gap-3"><button type="button" onClick={() => void submit("PATCH", item.id)} className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700">{copy.surveyAppointments.updateAction}</button><button type="button" onClick={() => setEditingId(null)} className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700">{copy.common.cancel}</button></div></div> : <div className="space-y-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-base font-semibold text-slate-950">{item.title}</p><p className="mt-1 text-sm text-slate-500">{item.customerName} · {item.location}</p></div><StatusBadge label={statusMap[item.status].label} tone={statusMap[item.status].tone} /></div><div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-2"><p>{copy.surveyAppointments.project}: {item.projectName || copy.surveyAppointments.noProject}</p><p>Assignee: {item.assignedToName || copy.common.noData}</p><p>{copy.surveyAppointments.scheduledStart}: {item.scheduledStart.slice(0, 16).replace("T", " ")}</p><p>{copy.surveyAppointments.scheduledEnd}: {item.scheduledEnd ? item.scheduledEnd.slice(0, 16).replace("T", " ") : copy.common.noData}</p><p>{copy.surveyAppointments.contactName}: {item.contactName || copy.common.noData}</p><p>{copy.surveyAppointments.contactPhone}: {item.contactPhone || copy.common.noData}</p></div><p className="text-sm text-slate-600">{item.note || copy.common.noData}</p><div className="flex flex-wrap gap-2"><button type="button" onClick={() => { setEditingId(item.id); setEditingForm(toForm(item)); }} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700">{copy.common.edit}</button><button type="button" disabled={convertingId === item.id} onClick={() => void convertToQuotation(item.id)} className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700">{convertingId === item.id ? copy.surveyAppointments.convertingToQuotation : copy.surveyAppointments.convertToQuotation}</button><button type="button" disabled={deletingId === item.id} onClick={() => void remove(item.id)} className="rounded-xl border border-red-200 px-3 py-2 text-xs font-medium text-red-700">{deletingId === item.id ? copy.common.deleting : copy.common.delete}</button></div></div>}</div>;
-          })}</div>}
+          {filteredAppointments.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center">
+                <p className="text-lg font-medium text-slate-900">{copy.surveyAppointments.emptyTitle}</p>
+                <p className="mt-2 text-sm text-slate-500">{copy.surveyAppointments.emptyDescription}</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredAppointments.map((item) => {
+                  const isEditing = editingId === item.id;
+
+                  if (isEditing) {
+                    return (
+                      <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="space-y-4">
+                          <Fields form={editingForm} customers={customers} projects={projects} members={members} copy={copy} onChange={updateEditingForm} />
+                          <div className="flex gap-3">
+                            <button type="button" onClick={() => void submit("PATCH", item.id)} className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700">{copy.surveyAppointments.updateAction}</button>
+                            <button type="button" onClick={() => setEditingId(null)} className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700">{copy.common.cancel}</button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="space-y-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <p className="text-base font-semibold text-slate-950">{item.title}</p>
+                            <p className="mt-1 text-sm text-slate-500">{item.customerName} · {item.location}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {item.quotationCount > 0 && (
+                              <span className="inline-flex rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
+                                Q: {item.quotationCount}
+                              </span>
+                            )}
+                            <StatusBadge label={statusMap[item.status].label} tone={statusMap[item.status].tone} />
+                          </div>
+                        </div>
+                        <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+                          <p>
+                            {copy.surveyAppointments.project}:{" "}
+                            {item.projectId ? (
+                              <Link href={`/${locale}/org/${orgSlug}/projects/${item.projectId}`} className="text-blue-600 hover:underline">
+                                {item.projectName || copy.surveyAppointments.noProject}
+                              </Link>
+                            ) : (
+                              copy.surveyAppointments.noProject
+                            )}
+                          </p>
+                          <p>Assignee: {item.assignedToName || copy.common.noData}</p>
+                          <p>{copy.surveyAppointments.scheduledStart}: {item.scheduledStart.slice(0, 16).replace("T", " ")}</p>
+                          <p>{copy.surveyAppointments.scheduledEnd}: {item.scheduledEnd ? item.scheduledEnd.slice(0, 16).replace("T", " ") : copy.common.noData}</p>
+                          <p>{copy.surveyAppointments.contactName}: {item.contactName || copy.common.noData}</p>
+                          <p>{copy.surveyAppointments.contactPhone}: {item.contactPhone || copy.common.noData}</p>
+                        </div>
+                        {item.note && <p className="text-sm text-slate-600">{item.note}</p>}
+                        <div className="flex flex-wrap gap-2">
+                          <button type="button" onClick={() => { setEditingId(item.id); setEditingForm(toForm(item)); }} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700">{copy.common.edit}</button>
+                          <button type="button" disabled={convertingId === item.id} onClick={() => void convertToQuotation(item.id)} className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700">{convertingId === item.id ? copy.surveyAppointments.convertingToQuotation : copy.surveyAppointments.convertToQuotation}</button>
+                          <button type="button" disabled={deletingId === item.id} onClick={() => void remove(item.id)} className="rounded-xl border border-red-200 px-3 py-2 text-xs font-medium text-red-700">{deletingId === item.id ? copy.common.deleting : copy.common.delete}</button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
         </DataPanel>
       </div>
     </div>

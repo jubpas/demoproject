@@ -16,6 +16,9 @@ type CustomerItem = {
   address: string | null;
   note: string | null;
   createdAt: string;
+  quotationCount: number;
+  appointmentCount: number;
+  projectCount: number;
 };
 
 type Props = {
@@ -290,6 +293,9 @@ export function CustomerManager({ locale, orgSlug, customers, canManage, copy }:
                       <th className="pb-3 font-medium">{copy.customers.companyName}</th>
                       <th className="pb-3 font-medium">{copy.customers.phone}</th>
                       <th className="pb-3 font-medium">{copy.customers.email}</th>
+                      <th className="pb-3 font-medium text-center">
+                        <span className="text-xs text-slate-500">Linked</span>
+                      </th>
                       <th className="pb-3 text-right font-medium">Action</th>
                     </tr>
                   </thead>
@@ -323,6 +329,13 @@ export function CustomerManager({ locale, orgSlug, customers, canManage, copy }:
                           <td className="py-4">{customer.companyName || copy.common.noData}</td>
                           <td className="py-4">{customer.phone || copy.common.noData}</td>
                           <td className="py-4">{customer.email || copy.common.noData}</td>
+                          <td className="py-4 text-center">
+                            <span className="inline-flex gap-1.5 text-xs font-medium">
+                              <span className="rounded-full bg-green-50 px-2 py-1 text-green-700">Q:{customer.quotationCount}</span>
+                              <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-700">S:{customer.appointmentCount}</span>
+                              <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">P:{customer.projectCount}</span>
+                            </span>
+                          </td>
                           <td className="py-4 text-right">
                             <div className="flex justify-end gap-2">
                               <Link href={`/${locale}/org/${orgSlug}/customers/${customer.id}`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700">
@@ -381,9 +394,20 @@ export function CustomerManager({ locale, orgSlug, customers, canManage, copy }:
                             <p className="mt-1 text-sm text-slate-500">{customer.companyName || copy.common.noData}</p>
                           </div>
                           <div className="grid gap-2 text-sm text-slate-600">
-                            <p>{copy.customers.phone}: {customer.phone || copy.common.noData}</p>
-                            <p>{copy.customers.email}: {customer.email || copy.common.noData}</p>
-                            <p>{copy.customers.address}: {customer.address || copy.common.noData}</p>
+                            <p><span className="font-medium text-slate-500">{copy.customers.phone}:</span> {customer.phone || copy.common.noData}</p>
+                            <p><span className="font-medium text-slate-500">{copy.customers.email}:</span> {customer.email || copy.common.noData}</p>
+                            <p><span className="font-medium text-slate-500">{copy.customers.address}:</span> {customer.address || copy.common.noData}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="inline-flex rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
+                              Q: {customer.quotationCount}
+                            </span>
+                            <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+                              S: {customer.appointmentCount}
+                            </span>
+                            <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+                              P: {customer.projectCount}
+                            </span>
                           </div>
                           <div className="flex gap-2">
                             <Link href={`/${locale}/org/${orgSlug}/customers/${customer.id}`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700">

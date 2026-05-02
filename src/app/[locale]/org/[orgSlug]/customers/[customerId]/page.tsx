@@ -30,7 +30,7 @@ export default async function CustomerDetailPage({ params }: Props) {
       },
       projects: { orderBy: { updatedAt: "desc" }, take: 6 },
       quotations: { orderBy: { updatedAt: "desc" }, take: 6 },
-      surveyAppointments: { orderBy: { scheduledStart: "desc" }, take: 6 },
+      surveyAppointments: { orderBy: { scheduledStart: "desc" }, take: 6, include: { _count: { select: { quotations: true } } } },
     },
   });
 
@@ -104,7 +104,7 @@ export default async function CustomerDetailPage({ params }: Props) {
       <div className="grid gap-6 xl:grid-cols-3">
         <DataPanel title={messages.customers.relatedSurveysTitle}>
           <div className="space-y-3">
-            {customer.surveyAppointments.length === 0 ? <p className="text-sm text-slate-500">{messages.customers.noRelatedSurveys}</p> : customer.surveyAppointments.map((item) => <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="flex items-start justify-between gap-3"><p className="font-medium text-slate-950">{item.title}</p><StatusBadge label={appointmentStatusMap[item.status].label} tone={appointmentStatusMap[item.status].tone} /></div><p className="mt-2 text-xs text-slate-500">{item.scheduledStart.toISOString().slice(0, 16).replace("T", " ")}</p></div>)}
+{customer.surveyAppointments.length === 0 ? <p className="text-sm text-slate-500">{messages.customers.noRelatedSurveys}</p> : customer.surveyAppointments.map((item) => <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="flex items-start justify-between gap-3"><div className="space-y-1"><p className="font-medium text-slate-950">{item.title}</p>{item._count && item._count.quotations > 0 && <span className="inline-block rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">{item._count.quotations} {messages.quotations.quotations}</span>}</div><StatusBadge label={appointmentStatusMap[item.status].label} tone={appointmentStatusMap[item.status].tone} /></div><p className="mt-2 text-xs text-slate-500">{item.scheduledStart.toISOString().slice(0, 16).replace("T", " ")}</p></div>)}
           </div>
         </DataPanel>
 

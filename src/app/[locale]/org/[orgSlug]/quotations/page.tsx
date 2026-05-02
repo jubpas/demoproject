@@ -20,16 +20,19 @@ export default async function QuotationsPage({ params, searchParams }: Props) {
   const messages = getMessages(validLocale);
   const initialCustomerId = getSingleValue((await searchParams).customerId).trim();
 
-  const [quotations, customers, projects] = await Promise.all([
-    prisma.quotation.findMany({ where: { organizationId: organization.id }, include: { customer: { select: { name: true } }, project: { select: { name: true } }, items: { orderBy: { sortOrder: "asc" } } }, orderBy: { createdAt: "desc" } }),
+  const [quotations, customers, projects, surveyAppointments] = await Promise.all([
+    prisma.quotation.findMany({ where: { organizationId: organization.id }, include: { customer: { select: { name: true } }, project: { select: { name: true } }, surveyAppointment: { select: { id: true, title: true } }, items: { orderBy: { sortOrder: "asc" } } }, orderBy: { createdAt: "desc" } }),
     prisma.customer.findMany({ where: { organizationId: organization.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.project.findMany({ where: { organizationId: organization.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.surveyAppointment.findMany({ where: { organizationId: organization.id }, select: { id: true, title: true } }),
   ]);
+
+  const surveyMap = Object.fromEntries(surveyAppointments.map((sa) => [sa.id, sa.title])) as Record<string, string>;
 
   return (
     <QuotationManager
       locale={validLocale}
-      quotations={quotations.map((item) => ({ id: item.id, quotationNumber: item.quotationNumber, customerId: item.customerId, customerName: item.customer.name, projectId: item.projectId, projectName: item.project?.name ?? null, status: item.status, issueDate: item.issueDate.toISOString(), validUntil: item.validUntil?.toISOString() ?? null, discountInCents: item.discountInCents, taxEnabled: item.taxEnabled, taxRate: item.taxRate, subtotalInCents: item.subtotalInCents, taxInCents: item.taxInCents, totalInCents: item.totalInCents, note: item.note, items: item.items }))}
+      quotations={quotations.map((item) => ({ id: item.id, quotationNumber: item.quotationNumber, customerId: item.customerId, customerName: item.customer.name, projectId: item.projectId, projectName: item.project?.name ?? null, sourceSurveyId: item.surveyAppointmentId, sourceSurveyTitle: item.surveyAppointment ? surveyMap[item.surveyAppointment.id] || null : null, status: item.status, issueDate: item.issueDate.toISOString(), validUntil: item.validUntil?.toISOString() ?? null, discountInCents: item.discountInCents, taxEnabled: item.taxEnabled, taxRate: item.taxRate, subtotalInCents: item.subtotalInCents, taxInCents: item.taxInCents, totalInCents: item.totalInCents, note: item.note, items: item.items }))}
       customers={customers}
       projects={projects}
       orgSlug={orgSlug}

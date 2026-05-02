@@ -20,18 +20,21 @@ export default async function SurveyAppointmentsPage({ params, searchParams }: P
   const messages = getMessages(validLocale);
   const initialCustomerId = getSingleValue((await searchParams).customerId).trim();
 
-  const [appointments, customers, projects, members] = await Promise.all([
-    prisma.surveyAppointment.findMany({ where: { organizationId: organization.id }, include: { customer: { select: { name: true } }, project: { select: { name: true } }, assignedTo: { select: { name: true, email: true } } }, orderBy: { scheduledStart: "desc" } }),
+  const [quotations, appointments, customers, projects, members] = await Promise.all([
+    prisma.quotation.groupBy({ by: ["customerId"], _count: { id: true }, where: { organizationId: organization.id } }),
+    prisma.surveyAppointment.findMany({ where: { organizationId: organization.id }, include: { customer: { select: { name: true } }, project: { select: { name: true } }, assignedTo: { select: { name: true, email: true } }, orderBy: { scheduledStart: "desc" } } }),
     prisma.customer.findMany({ where: { organizationId: organization.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.project.findMany({ where: { organizationId: organization.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.membership.findMany({ where: { organizationId: organization.id }, include: { user: { select: { id: true, name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
   ]);
 
+  const quotationCountMap = Object.fromEntries(quotations.map((q) => [q.customerId, q._count.id])) as Record<string, number>;
+
   return (
     <SurveyAppointmentManager
       locale={validLocale}
       orgSlug={orgSlug}
-      appointments={appointments.map((item) => ({ id: item.id, customerId: item.customerId, customerName: item.customer.name, projectId: item.projectId, projectName: item.project?.name ?? null, assignedToId: item.assignedToId, assignedToName: item.assignedTo?.name || item.assignedTo?.email || null, title: item.title, location: item.location, contactName: item.contactName, contactPhone: item.contactPhone, scheduledStart: item.scheduledStart.toISOString(), scheduledEnd: item.scheduledEnd?.toISOString() ?? null, status: item.status, note: item.note }))}
+      appointments={appointments.map((item) => ({ id: item.id, customerId: item.customerId, customerName: item.customer.name, projectId: item.projectId, projectName: item.project?.name ?? null, assignedToId: item.assignedToId, assignedToName: item.assignedTo?.name || item.assignedTo?.email || null, title: item.title, location: item.location, contactName: item.contactName, contactPhone: item.contactPhone, scheduledStart: item.scheduledStart.toISOString(), scheduledEnd: item.scheduledEnd?.toISOString() ?? null, status: item.status, note: item.note, quotationCount: quotationCountMap[item.customerId] ?? 0 }))}
       customers={customers}
       projects={projects}
       members={members.map((item) => ({ id: item.user.id, name: item.user.name || item.user.email || "User" }))}

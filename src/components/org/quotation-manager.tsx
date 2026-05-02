@@ -27,6 +27,8 @@ type QuotationData = {
   customerName: string;
   projectId: string | null;
   projectName: string | null;
+  sourceSurveyId: string | null;
+  sourceSurveyTitle: string | null;
   status: QuotationStatus;
   issueDate: string;
   validUntil: string | null;
@@ -130,6 +132,7 @@ type Props = {
       clearFilters: string;
       searchQuotationsPlaceholder: string;
       flowHint: string;
+      sourceSurvey: string;
     };
   };
 };
@@ -431,13 +434,19 @@ export function QuotationManager({ locale, quotations, customers, projects, orgS
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                          <div>
-                            <p className="text-base font-semibold text-slate-950">{item.quotationNumber}</p>
-                            <p className="mt-1 text-sm text-slate-500">{item.customerName} · {item.projectName || copy.quotations.noProject}</p>
-                          </div>
-                          <StatusBadge label={statusMap[item.status].label} tone={statusMap[item.status].tone} />
-                        </div>
+                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                         <div className="space-y-1 sm:space-y-2">
+                         <p className="text-base font-semibold text-slate-950">{item.quotationNumber}</p>
+                         <p className="text-sm text-slate-500">{item.customerName}</p>
+                         {item.projectId && (
+                           <Link href={`/${locale}/org/${orgSlug}/projects/${item.projectId}`} className="inline-flex text-xs font-medium text-blue-600 hover:underline">{item.projectName || copy.quotations.noProject}</Link>
+                         )}
+                         {item.sourceSurveyId && (
+                           <div className="text-xs text-slate-500">{copy.quotations.sourceSurvey}: <span className="font-medium text-slate-600">{item.sourceSurveyTitle || item.sourceSurveyId}</span></div>
+                         )}
+                       </div>
+                         <StatusBadge label={statusMap[item.status].label} tone={statusMap[item.status].tone} />
+                       </div>
                         <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
                           <p>{copy.quotations.issueDate}: {item.issueDate.slice(0, 10)}</p>
                           <p>{copy.quotations.validUntil}: {item.validUntil ? item.validUntil.slice(0, 10) : copy.common.noData}</p>

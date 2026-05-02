@@ -17,6 +17,11 @@ export default async function CustomersPage({ params }: Props) {
     where: {
       organizationId: organization.id,
     },
+    include: {
+        _count: {
+        select: { surveyAppointments: true, quotations: true, projects: true },
+      },
+    },
     orderBy: {
       createdAt: "desc",
     },
@@ -27,8 +32,17 @@ export default async function CustomersPage({ params }: Props) {
       locale={validLocale}
       orgSlug={orgSlug}
       customers={customers.map((customer) => ({
-        ...customer,
+        id: customer.id,
+        name: customer.name,
+        companyName: customer.companyName,
+        phone: customer.phone,
+        email: customer.email,
+        address: customer.address,
+        note: customer.note,
         createdAt: customer.createdAt.toISOString(),
+        quotationCount: customer._count?.quotations ?? 0,
+        appointmentCount: customer._count?.surveys ?? 0,
+        projectCount: customer._count?.projects ?? 0,
       }))}
       canManage={canManageOrganizationData(membership.role)}
       copy={{ common: messages.common, customers: messages.customers }}

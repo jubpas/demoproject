@@ -63,6 +63,7 @@ export async function POST(_request: Request, { params }: Props) {
         organizationId: membership.organizationId,
         customerId: appointment.customerId,
         projectId: appointment.projectId,
+        surveyAppointmentId: appointment.id,
         createdById: userId,
         quotationNumber,
         note: noteParts.join("\n"),
