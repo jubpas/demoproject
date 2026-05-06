@@ -1,232 +1,278 @@
-# Task Roadmap: Project Control First
+# Task Board: Refactor + Demo Data + UX/UI Audit
 
-## Goal
+อัปเดตล่าสุด: 2026-05-06
+สถานะ: วางแผนรอบปรับโครงสร้างเอกสารและจัดลำดับงาน
 
-พัฒนาระบบ `ไซต์งานโปร` ให้เป็นแกนหลักสำหรับ `Budgeting, Accounting, Reporting, and Auditing` โดยเริ่มจากการควบคุมงบโครงการและติดตามต้นทุนจริงให้ใช้งานได้จริงก่อน
+## เป้าหมายของรอบนี้
 
-## Current Status
+1. จัดแผน refactor ให้ระบบอ่านง่าย ดูแลง่าย และลด code/doc drift
+2. ยกระดับ demo data ให้ครอบคลุม flow หลักของ product รวมถึงทีมคนงาน ค่าแรง งานประจำวัน และรายงาน
+3. ประเมินว่า UX/UI หน้าไหนพร้อมใช้ หน้าไหนยังต้องเก็บงาน
+4. อัปเดตไฟล์ `.md` ให้ทีมเปิดแล้วรู้เลยว่าควรทำอะไรต่อ
 
-ทำเสร็จแล้ว:
+## สรุปสภาพระบบตอนนี้
 
-- Auth flow พร้อม onboarding สร้าง organization แรก
-- Multi-organization routing ผ่าน `orgSlug`
-- Customers CRUD
-- Projects CRUD
-- Transactions CRUD
-- Local receipt upload สำหรับ transaction
-- Project Detail พร้อม linked business flow
-- Project Budgeting MVP พร้อม budget lines และ budget vs actual
-- Survey Appointment Queue ใช้งานได้ในระดับ CRUD เบื้องต้น
-- Quotation Management ใช้งานได้ในระดับ CRUD เบื้องต้น
-- Quotation Preview / Print
-- Flow `Survey Appointment -> Quotation`
-- Flow `Quotation -> Project`
-- Reports ระดับองค์กรสำหรับ Budget vs Actual
-- Audit Explorer ระดับองค์กร
-- Profit/Loss Reporting พร้อม filter ตามช่วงเวลา โครงการ และประเภทธุรกรรม
-- Audit Explorer แสดง before/after diff แบบอ่านง่าย พร้อม fallback raw JSON
-- Approval workflow สำหรับ budget change ที่เกิน threshold
-- Settings ระดับองค์กรสำหรับ `approvalThresholdInCents`
-- Member Management พร้อม invite link ระดับองค์กร
-- Super Admin Console สำหรับจัดการ organizations และ subscriptions เบื้องต้น
-- Subscription foundation แบบ monthly / yearly / lifetime พร้อม seat tracking
-- Dashboard summary cards, quick actions, และ recent transactions
-- Dashboard workload pulse, project health snapshot, และ recent activity feed
-- Project Task/Schedule polish พร้อม filters, overdue highlight, schedule summary และ timeline readability
-- Filters/Search เพิ่มเติมใน Projects, Transactions และ Tasks
-- Survey-to-Quotation workflow tracing: `surveyAppointmentId` บน Quotation model, ความเชื่่อมโยง 2 ด้าน
-- Quotation detail: context nav bar ไป customer/survey/project หน้า
-- Quotation list: แสดง source survey reference
-- Customer Manager: linked counts badge (Q/S/P) ในตารางและ modal
-- Survey Appointment Manager: quotation count badge ต่อรายการ
-- Customer pages: fetch `_count` aggregation สำหรับ linked counts
+- Product flow หลักมีแล้ว: dashboard, customers, projects, tasks, schedule, quotations, survey appointments, transactions, reports, members, worker teams, work logs
+- โครงสร้างข้อมูลและ route หลักไปถูกทางแล้ว แต่เอกสารเดิมมี drift และบางไฟล์มีปัญหา encoding ภาษาไทย
+- UI ยังไม่เรียบร้อยทั้งหมด: มี shared component รุ่นใหม่แล้ว แต่หลายหน้ายังใช้ light admin pattern เดิมปนอยู่
+- Demo seed มีอยู่แล้วผ่าน `npm run seed:demo` แต่ dataset ยังไม่ครอบคลุม worker planning และยังมีข้อความไทยเพี้ยนบางจุด
 
-กำลังทำรอบนี้:
+## คำตอบสั้น ๆ ว่า UX/UI เรียบร้อยไหม
 
-- เก็บ product flow หลักให้ครบและนิ่งก่อนกลับไปแล้ว deploy readiness
-- ปรับ UI หลัง login ให้สอดคล้องกบ์ `DESIGN.md` แบบ incrementally โดยไม่รื้อ light admin dashboard เดิมทันที
-- จัดเอกสาร task แยกจาก project plan ให้ตรงกับสภาพ repo ปัจจุบัน
-- เก็บ permission layer ให้รองรับ super admin และ organization members flow ให้ชัดเจนในจุดที่ยังเหลือ
+ยังไม่เรียบร้อยทั้งหมด
 
-ถัดไปทันที:
+พร้อมใช้งานระดับ flow:
+- customers
+- projects
+- quotations
+- survey appointments
+- transactions
+- members
+- worker teams
+- work logs
 
-- Phase 15: member audit trail + owner transfer flow
-- Phase 16: quotation filters/search polish + export CSV
-- Phase 17: survey appointment detail page with quotation/project linking
+ยังควรเก็บ UX/UI เพิ่ม:
+- dashboard
+- global search
+- รายการ manager หลักให้ใช้ pattern เดียวกัน
+- copy ภาษาไทย/อังกฤษ และข้อความที่ยัง hardcode
 
-อัปเดตล่าสุด:
+## หน้าและไฟล์ที่ควรแก้
 
-- เพิ่ม `Survey Appointment Queue` ใช้งานได้ในระดับ CRUD เบื้องต้น
-- เพิ่ม `Quotation Management` ใช้งานได้ในระดับ CRUD เบื้องต้น
-- เพิ่มเมนูและ route สำหรับสองฟีเจอร์ใหม่แล้ว
-- เพิ่มหน้า `Quotation Preview / Print` สำหรับเปิดดูเอกสารรายใบเสนอราคา
-- เพิ่ม flow `Survey Appointment -> Quotation` แบบสร้าง draft quotation อัตโนมัติจากคิวนัด
-- เพิ่ม flow `Quotation -> Project` แบบสร้างโครงการอัตโนมัติจากใบเสนอราคา
-- เพิ่มหน้า `Project Detail` พร้อมแสดงความเชื่อมโยงกับ quotation, survey appointment และ transactions
-- เพิ่ม `BudgetCategory` ระดับ organization และ `ProjectBudgetLine` ระดับโครงการ
-- เพิ่มการผูก transaction กับ budget category, payment status, vendor, และ reference number
-- เพิ่ม budget overview ในหน้า project detail พร้อม planned / actual / remaining / variance / usage
-- เพิ่ม `BudgetRevision` และ `AuditLog` พร้อม recent history ในหน้า project detail
-- เพิ่มการบันทึก audit อัตโนมัติจาก budget line และ transaction CRUD
-- เพิ่มหน้า `Reports` ระดับองค์กรสำหรับดู Budget vs Actual ทุกโครงการ
-- เพิ่ม summary cards, project variance table, และ expense by budget category
-- เพิ่มหน้า `Audit Explorer` ระดับองค์กร พร้อม filter ตาม actor, entity, action, project และช่วงเวลา
-- เพิ่ม `ApprovalRequest` และ threshold-based approval workflow สำหรับ budget change ที่เกินเกณฑ์
-- เพิ่มหน้า `Approvals` พร้อม approve/reject สำหรับ OWNER/ADMIN
-- เพิ่ม `approvalThresholdInCents` field ใน Organization model สำหรับตั้งค่า threshold ได้ต่อองค์กร
-- สร้าง `Settings` page สำหรับอัปเดตค่า threshold การอนุมัติ
-- สร้าง API route `/api/org/[orgSlug]/settings/route.ts` สำหรับอัปเดต threshold พร้อมตรวจสอบ role
-- รีแฟกเตอร์ `src/lib/approvals.ts` ให้ใช้ threshold จาก `organization.approvalThresholdInCents` แทนค่า hardcoded
-- อัปเดต budget-line API routes (create/update/delete) ให้ส่ง threshold จาก org ไปยัง approval logic
-- เพิ่ม cost accounting foundation บางส่วนผ่าน `paymentStatus`, `vendorName`, `referenceNumber`, และ `budgetCategory`
-- เพิ่ม recent budget revision และ recent audit log ในหน้า project detail
-- แก้ settings form ให้ยิง `/api/org/[orgSlug]/settings` ตรงกับ route จริง และแปลงค่าบาทเป็น cents ก่อนบันทึก
-- แก้หน้า approvals ให้แสดง threshold จาก `organization.approvalThresholdInCents` แทนค่า default hardcoded
-- เพิ่มหน้า `Members` ระดับองค์กร พร้อมสร้าง invite link, เปลี่ยน role และลบสมาชิก
-- เพิ่มหน้า public `invite/[token]` สำหรับรับคำเชิญหลัง login/register
-- เพิ่ม `systemRole` สำหรับรองรับ `SUPER_ADMIN` และรองรับ bootstrap ผ่าน `SUPER_ADMIN_EMAILS`
-- เพิ่มหน้า `admin` และ `admin/organizations/[organizationId]` สำหรับจัดการองค์กรทั้งระบบ
-- เพิ่ม models `OrganizationInvite`, `SubscriptionPlan`, `OrganizationSubscription`, `SubscriptionEvent`
-- เพิ่ม subscription foundation แบบ manual admin-managed พร้อม monthly / yearly / lifetime plans และ seat limit summary
-- เพิ่มการแสดงแผนใช้งานและ seat usage ในหน้า settings ขององค์กร
-- เพิ่ม `ProjectTask` พร้อม task CRUD, audit log, overdue logic และ schedule page แบบ read-only
-- เพิ่ม Task/Schedule polish: task filters, overdue highlight, schedule dark technical header, status badge และ progress overlay
-- เพิ่ม Dashboard Analytics รอบสอง: workload pulse, project health snapshot, over-budget metric และ recent audit activity feed
-- เพิ่ม Profit/Loss Reporting ในหน้า Reports พร้อม filter ตามวันที่ โครงการ และประเภทธุรกรรม
-- เพิ่ม Audit readable diff ใน Audit Explorer แทนการอ่าน JSON ดิบเป็นหลัก
-- เพิ่ม filters ใน Projects และ Transactions พร้อม count และ clear filters
+### กลุ่ม 1: UX/UI consistency
 
-## Main Tasks
+- `src/app/[locale]/org/[orgSlug]/dashboard/page.tsx`
+- `src/components/org/customer-manager.tsx`
+- `src/components/org/project-manager.tsx`
+- `src/components/org/quotation-manager.tsx`
+- `src/components/org/survey-appointment-manager.tsx`
+- `src/components/org/transaction-manager.tsx`
+- `src/components/org/member-manager.tsx`
+- `src/components/org/work-log-manager.tsx`
+- `src/components/org/worker-team-manager.tsx`
 
-### 1. Project Budget Control
+เป้าหมาย:
+- จัด spacing, panel tone, filter bar, action button, empty state ให้สอดคล้องกัน
+- ลดการปนกันของ style เก่าและ style ใหม่
+- อิง `DESIGN.md` แบบ incremental โดยไม่รื้อทั้งระบบ
 
-- เพิ่มการ lock budget เมื่อโครงการเริ่มใช้งานจริง
-- ✅ เพิ่ม threshold แบบปรับค่าได้ต่อ organization — เสร็จแล้ว
-  - เพิ่ม field `approvalThresholdInCents` ใน Organization
-  - สร้าง Settings page และ API route สำหรับอัปเดตค่า
-  - รีแฟกเตอร์ approval logic ให้ใช้ค่าจาก DB แทน hardcoded
+### กลุ่ม 2: Localization และ copy cleanup
 
-### 2. Cost Accounting
+- `src/components/org/global-search.tsx`
+- `src/components/org/member-manager.tsx`
+- `src/components/org/survey-appointment-manager.tsx`
+- `src/messages/th.ts`
+- `src/messages/en.ts`
+- seed/demo docs ที่ยังมีข้อความไทยเพี้ยน
 
-- ✅ เพิ่ม `paymentStatus`, `vendorName`, `referenceNumber` และการผูก `budgetCategory` — เสร็จแล้วบางส่วน
-- เพิ่ม payable / receivable status ให้ครบขึ้น
-- เพิ่ม supplier/vendor master data
-- เพิ่มเอกสารอ้างอิงทางบัญชีให้ละเอียดขึ้น
+เป้าหมาย:
+- แก้ข้อความ mojibake
+- เอา hardcoded English ออกจากหน้าไทย
+- ทำ label, empty state, helper text ให้ consistent
 
-### 3. Reporting
+### กลุ่ม 3: Demo data / seed
 
-- ✅ เพิ่ม project profit/loss report พร้อม filter ตามช่วงเวลา โครงการ และประเภทธุรกรรม
-- เพิ่ม over-budget project report ให้ลึกขึ้น
-- เพิ่ม export CSV/PDF ใน phase ถัดไป
+- `prisma/demo-seed.mjs`
+- ถ้าจำเป็น: `prisma/tes001-seed.mjs`
+- เอกสารอ้างอิงใน `task.md`, `project-plan.md`, `test-plan.md`
 
-### 4. Auditing
+เป้าหมาย:
+- เพิ่ม dataset สำหรับ worker teams, worker assignments, work logs
+- ทำ customer/project/quotation/transaction chain ให้เห็นภาพธุรกิจจริง
+- ทำ dashboard และ reports มีตัวเลขอ่านแล้วสมเหตุผล
+- แก้ข้อความไทยใน seed ให้เป็น UTF-8 ปกติ
 
-- ✅ เพิ่มแสดง before/after diff แบบอ่านง่ายขึ้น พร้อม fallback raw JSON
-- ขยาย audit log ไปยัง entity อื่นให้ครบขึ้น
-- เพิ่ม export audit log ใน phase ถัดไป
+### กลุ่ม 4: Print-ready documents
 
-### 5. Filters And Search
+- `src/app/[locale]/org/[orgSlug]/quotations/[quotationId]/page.tsx`
+- `src/components/org/print-quotation-button.tsx`
+- ถัดไปพิจารณา:
+  - `src/app/[locale]/org/[orgSlug]/projects/[projectId]/page.tsx`
+  - `src/app/[locale]/org/[orgSlug]/reports/page.tsx`
+  - summary/detail pages ที่ต้องแชร์ให้ลูกค้าหรือหัวหน้างาน
 
-- เพิ่ม search/filter ใน Customers
-- ✅ เพิ่ม search/filter ใน Projects ตาม keyword, status, customer
-- ✅ เพิ่ม search/filter ใน Transactions ตาม keyword, type, payment status, project, budget category
-- ✅ เพิ่ม search/filter ใน Tasks ตาม keyword, status, priority, assignee
-- รองรับ filter ตาม status, type, project, date range
+เป้าหมาย:
+- ทำหน้าเอกสารสำหรับพิมพ์ให้ layout เรียบร้อยในกระดาษ A4
+- ทำ visual hierarchy ให้ “ยังเป็น product เดียวกับหน้าเว็บ” แต่เหมาะกับเอกสาร
+- จัด print CSS / print-only sections / page breaks ให้คุมได้
+- เริ่มจาก quotation ก่อน แล้วค่อยขยายไป project summary และ report summary
 
-### 6. Dashboard Analytics
+### กลุ่ม 5: AI assistant roadmap (vLLM API)
 
-- ✅ เพิ่ม workload pulse สำหรับงานค้าง งานเกินกำหนด และนัดหมายใกล้ถึง
-- ✅ เพิ่ม project health snapshot และ over-budget project metric
-- ✅ เพิ่ม recent activity feed จาก audit log
-- เพิ่ม analytics visual summary ให้ลึกขึ้นในรอบถัดไป
+- เอกสารอ้างอิงใน `task.md`, `project-plan.md`, `test-plan.md`
+- ระยะ implement หลักในอนาคต:
+  - `src/app/[locale]/org/[orgSlug]/dashboard/page.tsx`
+  - `src/app/[locale]/org/[orgSlug]/projects/[projectId]/page.tsx`
+  - `src/app/[locale]/org/[orgSlug]/reports/page.tsx`
+  - `src/app/api/org/[orgSlug]/*` กลุ่ม AI endpoints ที่จะเพิ่มภายหลัง
+  - `src/lib/*` กลุ่ม service/helper สำหรับ prompt, retrieval, guardrails, AI audit log
 
-### 6.1 UI Alignment With DESIGN.md
+เป้าหมาย:
+- ทำ AI assistant ที่ผูกกับข้อมูลองค์กร/โครงการ/งบประมาณ/ทีมงานจริง
+- ใช้ `vLLM API` เป็น model serving layer
+- เริ่มจาก summary / risk / alert / drafting ก่อน
+- ค่อยขยายไป predictive และ action-oriented assistant
 
-- ทุกงาน UI ต้องอ่าน `DESIGN.md` ก่อนเริ่มแก้
-- ใช้ `DESIGN.md` เป็น source of truth สำหรับ visual direction, color tokens, typography, spacing, component tone, และ responsive behavior
-- ปัจจุบัน app เป็น light admin dashboard ให้ preserve UX เดิมก่อน แล้วนำ principle จาก `DESIGN.md` มาปรับ hierarchy, spacing, card tone, CTA, และ state styling แบบ incremental
-- ห้าม redesign ทั้งระบบเป็น dark theme ทันที เว้นแต่มีคำสั่งชัดเจน
-- หน้าใหม่หรือ component ใหม่ควร map token จาก `DESIGN.md` เข้ากับ Tailwind class ที่มีอยู่ โดยไม่เพิ่ม UI library ถ้าไม่จำเป็น
+## ลำดับทำงานที่แนะนำ
 
-### 7. Member Management
+### Phase 1: Cleanup ที่กระทบความเข้าใจของทีมทันที
 
-- ✅ เพิ่มหน้าจัดการสมาชิกองค์กร — เสร็จแล้วระดับพื้นฐาน
-- ✅ แสดง role: `OWNER`, `ADMIN`, `MANAGER`, `STAFF`
-- ✅ เพิ่ม invite link / change role / remove member ระดับพื้นฐาน
-- เพิ่ม email delivery สำหรับ invite ในรอบถัดไป
-- เพิ่ม owner transfer flow แบบชัดเจนในรอบถัดไป
-- เพิ่ม member audit log สำหรับการเชิญ, เปลี่ยน role, และลบสมาชิกในรอบถัดไป
+- [ ] rewrite docs ที่ drift และ encoding เพี้ยน
+- [ ] audit หน้า product flow หลัก
+- [ ] สรุปไฟล์ที่ควร refactor ก่อนหลัง
 
-### 8. Super Admin And Billing
+### Phase 2: Demo data พร้อมใช้งานจริง
 
-- ✅ เพิ่ม `SUPER_ADMIN` foundation และ admin routes ระดับระบบ
-- ✅ เพิ่ม organization management ระดับระบบแบบ create/edit/archive
-- ✅ เพิ่ม subscription foundation แบบ monthly / yearly / lifetime
-- ✅ เพิ่ม seat tracking โดยนับสมาชิก + pending invites
-- เก็บ bootstrap safety และ production guardrails ของ super admin
-- เพิ่ม payment gateway integration ในรอบถัดไป
-- เพิ่ม checkout / self-service billing flow สำหรับ owner องค์กรในรอบถัดไป
-- เพิ่ม custom plan management และ billing history ให้ลึกขึ้นในรอบถัดไป
+- [x] ขยาย `npm run seed:demo`
+- [x] เพิ่มทีมคนงาน, ค่าแรงรายวัน/รายเดือน, assignment, work log
+- [x] เพิ่มข้อมูล dashboard/reports ให้มี sample ครบ
+- [ ] ระบุ demo account / org slug / expected records ในเอกสาร
 
-### 9. Deploy Readiness And Security
+### Phase 3: UX/UI refactor แบบไม่รื้อระบบ
 
-สถานะ: พักไว้ก่อนจนกว่า core product flow จะเรียบร้อยกว่าเดิม
+- [ ] เก็บ dashboard ให้ align กับ shared dashboard components
+- [ ] ทำ filter/action/list pattern ให้คล้ายกันระหว่าง manager หลัก
+- [ ] เก็บ empty state, badge, spacing, section hierarchy
+- [ ] เก็บ localization และ copy ให้ครบ
 
-- ปิดการส่ง `resetUrl` กลับ client ใน production เมื่อ email delivery ไม่พร้อม
-- วางแผนหรือย้าย database จาก SQLite local file ไปยัง hosted database สำหรับการ deploy จริง
-- หยุด track `dev.db` ใน workflow deployment และแยก local development data ออกจาก shared environment
-- ตรวจ `AUTH_SECRET`, `NEXTAUTH_SECRET`, `APP_URL`, `DATABASE_URL`, และ mail provider env ให้ครบ
-- ทบทวน super admin bootstrap ผ่าน `SUPER_ADMIN_EMAILS` ให้ปลอดภัยขึ้น
+### Phase 3.5: Print documents
 
-### 10. Transaction Attachments
+- [ ] ออกแบบ print layout มาตรฐานของระบบ
+- [ ] เก็บ quotation print view ให้สวยและพร้อมใช้งานจริง
+- [ ] วาง pattern สำหรับ print header / footer / metadata / totals
+- [ ] ระบุหน้าที่ควรมี print version เพิ่มในรอบถัดไป
 
-- เพิ่ม replace receipt ตอนแก้ transaction
-- เพิ่ม remove receipt แบบแยกไฟล์
-- รองรับหลายไฟล์ต่อ transaction ใน phase ถัดไป
+### Phase 4: AI planning backlog
 
-### 11. Quotation Management
+- [ ] วาง AI architecture สำหรับ `vLLM API`
+- [ ] กำหนด AI use cases แยกเป็น summary / alerts / prediction / actions
+- [ ] ระบุ data sources ที่ AI ใช้ได้จริงจาก schema ปัจจุบัน
+- [ ] ออกแบบ permission / audit / human review flow
+- [ ] เขียน evaluation checklist สำหรับ AI answers และ AI suggestions
 
-- เพิ่มหน้าออกใบเสนอราคา
-- รองรับผูกกับลูกค้าและโครงการ
-- เพิ่มรายการงาน/วัสดุ/ค่าแรงหลายบรรทัด
-- คำนวณ subtotal, discount, VAT, total
-- ค่าเริ่มต้น VAT ต้องเป็นปิด แต่เปิดใช้งานได้
-- เมื่อเปิด VAT ให้ใช้ 7% เป็นค่าเริ่มต้น และอนุญาตให้แก้เปอร์เซ็นต์ได้
-- เตรียมหน้า preview/print สำหรับส่งลูกค้า
+### Phase 4: Regression check
 
-### 12. Survey Appointment Queue
+- [ ] login/register
+- [ ] onboarding/create organization
+- [ ] members/invite
+- [ ] project/task/schedule
+- [ ] quotation/survey/transaction
+- [ ] worker-teams/work-logs
 
-- เพิ่มหน้าคิวสำรวจ / นัดลูกค้า
-- ผูกกับ customer และ project ได้ในอนาคต
-- เก็บสถานที่ วันเวลา ผู้รับผิดชอบ และข้อมูลติดต่อ
-- รองรับสถานะ `PENDING`, `CONFIRMED`, `COMPLETED`, `CANCELLED`, `RESCHEDULED`
-- ใช้เป็นต้นทางของ flow ก่อนออก quotation และเปิด project
+## สิ่งที่ควรทำก่อนถัดไปทันที
 
-## Recommended Order
+1. เก็บ `global-search.tsx` และ copy ที่ encoding เพี้ยน
+2. เก็บ `dashboard/page.tsx` ให้ visual language ชัดขึ้น
+3. ค่อยไล่ manager หลักทีละกลุ่ม: customers -> projects -> quotations -> transactions
+4. เพิ่ม demo credential/reference ลงเอกสารและหน้า internal note ถ้าจำเป็น
+5. เริ่ม print-ready document จาก quotation detail เป็นตัวแรก
+6. เก็บ AI roadmap ให้ครบก่อน implement จริง
 
-1. Customer/Survey/Quotation Flow Polish
-2. Quotation And Survey Appointment Filters
-3. Member Management Enhancements
-4. Transaction Attachment Improvements
-5. Cost Accounting Expansion
-6. Invite Email Delivery
-7. Owner Transfer And Member Audit Log
-8. UI Alignment รอบต่อเนื่องด้วย `DESIGN.md`
-9. Deploy Readiness And Security
-10. Payment Gateway And Billing Checkout
+## Progress Update: 2026-05-06
 
-## Notes
+- `prisma/demo-seed.mjs` ถูกขยายจาก seed ขนาดเล็กไปเป็น demo workspace ที่ครอบคลุม:
+  - users หลาย role
+  - subscription + seat summary
+  - 3 projects หลายสถานะ
+  - 4 quotations หลายสถานะ
+  - survey appointments หลายสถานะ
+  - worker teams + wage model + assignments
+  - work logs หลายสถานะ
+  - approval requests + audit logs
+  - transaction และ budget data สำหรับ dashboard/reports
+- ตรวจรัน `npm run seed:demo` ผ่านแล้ว
+- `src/components/org/global-search.tsx` ถูกเก็บใหม่:
+  - แก้ข้อความ mojibake
+  - ทำ copy ไทย/อังกฤษใน component
+  - แก้ task result ให้ลิงก์เข้าหน้า tasks route ที่มีอยู่จริง
+  - เปลี่ยน navigation เป็น `router.push`
+- `src/app/[locale]/org/[orgSlug]/dashboard/page.tsx` ถูกเก็บรอบแรก:
+  - แก้ separator ที่เพี้ยน
+  - เอา hardcoded `Net` / `Active overview` ออกให้รองรับ locale
+  - ลดความเสี่ยงเรื่อง encoding/trend text
+- ตรวจ `npx eslint src/components/org/global-search.tsx src/app/[locale]/org/[orgSlug]/dashboard/page.tsx` ผ่าน
+- ตรวจ `npm run build` ผ่าน
 
-- ยึดแนวทาง project-control-first บน light admin dashboard และใช้ `DESIGN.md` เป็น design source of truth สำหรับงาน UI
-- Desktop ต้องอ่านง่ายเป็น table-first
-- Mobile ต้อง fallback เป็น cards และ stacked sections
-- ทุก task ใหม่ต้องอัปเดตไฟล์นี้และ `project-plan.md` เสมอ
-- business flow ที่ต้องรองรับระยะถัดไปคือ `Customer -> Survey Appointment -> Quotation -> Project -> Transactions`
-- ✅ `approval threshold settings` ทำเสร็จแล้ว (2026-04-28)
-- ✅ `settings endpoint mismatch` และ `approval threshold display` เก็บแล้ว (2026-04-28)
-- ✅ task/schedule polish, dashboard analytics, profit/loss report, audit diff readability และ filters หลักทำเสร็จแล้วในรอบ product polish ล่าสุด
-- มี demo seed script ใช้งานได้ผ่าน `npm run seed:demo` สำหรับสร้าง workspace ตัวอย่างเพื่อทดสอบ dashboard, reports, tasks, quotations และ survey flow
-- implementation รอบต่อไปควรเก็บ Customer/Survey Appointment/Quotation flow polish และ filters ของ business flow ฝั่งเอกสาร
-- เอกสารต้องสะท้อนว่า approval workflow และ threshold settings ทำเสร็จแล้ว
-- มี code/doc drift เรื่อง i18n: เอกสารเดิมอ้าง `next-intl` แต่โค้ดจริงใช้ message modules แบบ `.ts`
-- implementation รอบถัดไปควรเก็บ technical alignment ควบคู่กับ feature work
+## Print Direction
+
+- เป้าหมายของ print ไม่ใช่ “เอาหน้าเว็บไปสั่งพิมพ์ตรง ๆ”
+- เป้าหมายคือ “ทำ document view ที่ยังคง brand และลำดับข้อมูลเหมือนหน้าเว็บ แต่จัด typography, spacing, border, และ page break สำหรับกระดาษ”
+- เริ่มจาก:
+  1. quotation print
+  2. project summary print
+  3. report summary print
+
+## AI Direction (Future)
+
+AI ในระบบนี้จะไม่เริ่มจาก chatbot ลอย ๆ แต่เริ่มจาก assistant ที่ผูกกับข้อมูลจริงในระบบ และใช้ `vLLM API` เป็น serving layer
+
+กลุ่มความสามารถที่ต้องการเก็บไว้ทำภายหลัง:
+
+1. Summary assistant
+   - สรุปสถานะโครงการ
+   - สรุปงบประมาณ/กระแสเงินสด
+   - Daily / weekly briefing
+   - สรุปสิ่งที่ต้องโฟกัสวันนี้
+
+2. Alert assistant
+   - แจ้งเตือน budget risk
+   - แจ้งเตือน overdue task
+   - แจ้งเตือน quotation ใกล้หมดอายุ
+   - แจ้งเตือน work log / approval queue ที่ค้าง
+
+3. Drafting assistant
+   - ช่วยเขียนสรุปส่งลูกค้า
+   - ช่วยเขียน note โครงการ
+   - ช่วยเขียน report summary
+   - ช่วยเตรียมข้อความก่อนประชุม/ตามงาน
+
+4. Predictive assistant
+   - ทำนายงบบานปลาย
+   - ทำนายความเสี่ยงส่งงานช้า
+   - แนะนำโครงการที่ควรจับตา
+   - แนะนำผลกระทบ manpower ต่อ timeline/cost
+
+5. Workforce assistant
+   - ช่วยประเมินการจัดทีมคนงาน
+   - เปรียบเทียบค่าแรงรายวัน/รายเดือน
+   - แนะนำ team/worker allocation ตามงาน
+
+6. Action assistant
+   - สร้าง task จากข้อความ
+   - สร้าง follow-up note
+   - สร้าง executive summary จากข้อมูลจริง
+   - ตอบคำถามเชิง business ผ่าน chat with org data
+
+หลักการสำคัญ:
+- AI เป็น “ผู้ช่วยแนะนำ” ไม่ใช่ “ผู้อนุมัติแทน”
+- ข้อมูลจริงและข้อความคาดการณ์ต้องแยกให้ชัด
+- ทุก AI output ควร trace ได้ว่าดึงจากข้อมูลกลุ่มไหน
+- งานตัวเลข/งบต้องมี deterministic calculation รองก่อนค่อยให้ LLM สรุปภาษา
+
+## Demo Reference
+
+- org slug: `demo-sitepro`
+- owner login: `demo.owner@sitepro.local / demo1234`
+- manager login: `demo.manager@sitepro.local / demo1234`
+- projects seeded: 3
+- quotations seeded: 4
+
+## AI Blueprint Update: 2026-05-06
+
+- เพิ่ม [ai-plan.md](J:/devRepo/demoNextjs/demoproject/ai-plan.md) เป็นเอกสารหลักสำหรับ AI implementation phase
+- ครอบคลุม `vLLM API` integration assumptions, endpoint drafts, context strategy, guardrails, logging, fallback, และ evaluation
+- ใช้ไฟล์นี้เป็น baseline ก่อนแตกงาน implement ใน `src/lib/ai/*` และ `src/app/api/org/[orgSlug]/ai/*`
+
+## Definition of Done สำหรับรอบ refactor นี้
+
+- เอกสาร `.md` สอดคล้องกับ implementation จริง
+- `npm run seed:demo` สร้าง workspace demo ที่ใช้เดโม product flow ได้จริง
+- หน้า product หลักไม่มีข้อความเพี้ยน
+- UX/UI ของหน้าหลักใช้ pattern ไปในทางเดียวกัน
+- flow สำคัญไม่ regression
+
+## หมายเหตุ
+
+- ใช้แนวทาง refactor ทีละกลุ่มงาน ไม่ redesign ใหญ่ทีเดียว
+- ระหว่างเก็บ UI ให้ preserve โครงสร้าง App Router และ flow ปัจจุบัน
+- ถ้าจะเพิ่ม dependency ใหม่ ต้องมีเหตุผลชัดและเช็กว่าอยู่ `dependencies` หรือ `devDependencies`

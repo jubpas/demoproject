@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import prisma from "@/lib/db";
 import { DataPanel } from "@/components/dashboard/data-panel";
 import { MetricCard } from "@/components/dashboard/metric-card";
@@ -17,6 +17,9 @@ export default async function DashboardPage({ params }: Props) {
   const validLocale = await requireLocale(locale);
   const { organization } = await requireOrganizationAccess(validLocale, orgSlug);
   const messages = getMessages(validLocale);
+  const dashboardUi = validLocale === "th"
+    ? { netLabel: "สุทธิ", overviewLabel: "ภาพรวมการทำงาน", separator: " | " }
+    : { netLabel: "Net", overviewLabel: "Active overview", separator: " | " };
 
   const today = new Date();
   const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -181,7 +184,7 @@ export default async function DashboardPage({ params }: Props) {
     }),
   ]);
 
-  // Serialize audit logs for client component (Date → ISO string)
+  // Serialize audit logs for client component (Date โ’ ISO string)
   const serializedAuditLogs = recentAuditLogs.map((log) => ({
     ...log,
     createdAt: log.createdAt.toISOString(),
@@ -198,12 +201,12 @@ export default async function DashboardPage({ params }: Props) {
   // Helper to calculate percentage change
   const calcTrend = (current: number, previous: number): { percentage: string; direction: "up" | "down" | "same"; trend: string } => {
     if (previous === 0 && current === 0) return { percentage: "0%", direction: "same", trend: "0%" };
-    if (previous === 0) return { percentage: "+100%", direction: "up", trend: "↑ +100%" };
+    if (previous === 0) return { percentage: "+100%", direction: "up", trend: "+100%" };
     const change = ((current - previous) / Math.abs(previous)) * 100;
     const rounded = Math.round(change * 10) / 10;
     const sign = rounded > 0 ? "+" : "";
     const direction = rounded > 0 ? "up" : rounded < 0 ? "down" : "same";
-    return { percentage: `${sign}${rounded}%`, direction, trend: `${rounded > 0 ? "↑" : rounded < 0 ? "↓" : ""} ${sign}${rounded}%` };
+    return { percentage: `${sign}${rounded}%`, direction, trend: `${sign}${rounded}%` };
   };
 
   // Calculate trends for this month vs last month
@@ -348,13 +351,13 @@ export default async function DashboardPage({ params }: Props) {
           </div>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl bg-slate-50 p-4">
-              <p className="text-sm text-slate-500">Net</p>
+              <p className="text-sm text-slate-500">{dashboardUi.netLabel}</p>
               <p className={`mt-2 text-2xl font-semibold ${totalNet >= 0 ? "text-emerald-700" : "text-red-700"}`}>
                 {moneyFormatter.format(totalNet / 100)}
               </p>
             </div>
             <div className="rounded-2xl bg-slate-50 p-4">
-              <p className="text-sm text-slate-500">Active overview</p>
+              <p className="text-sm text-slate-500">{dashboardUi.overviewLabel}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <StatusBadge label={messages.dashboard.projects} tone="blue" />
                 <StatusBadge label={messages.dashboard.customers} tone="slate" />
@@ -420,7 +423,7 @@ export default async function DashboardPage({ params }: Props) {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-medium text-slate-950">{task.title}</p>
-                      <p className="mt-1 text-xs text-slate-500">{task.project.name} · {task.assignedTo?.name || task.assignedTo?.email || messages.projects.noAssignee}</p>
+                      <p className="mt-1 text-xs text-slate-500">{task.project.name}{dashboardUi.separator}{task.assignedTo?.name || task.assignedTo?.email || messages.projects.noAssignee}</p>
                     </div>
                     <span className="text-xs font-semibold text-slate-500">{task.progressPercent}%</span>
                   </div>
@@ -437,7 +440,7 @@ export default async function DashboardPage({ params }: Props) {
                 upcomingAppointments.map((appointment) => (
                   <div key={appointment.id} className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-700 ring-1 ring-slate-200">
                     <p className="font-medium text-slate-950">{appointment.title}</p>
-                    <p className="mt-1 text-xs text-slate-500">{appointment.project?.name || messages.transactions.noProject} · {appointment.scheduledStart.toISOString().slice(0, 16).replace("T", " ")}</p>
+                    <p className="mt-1 text-xs text-slate-500">{appointment.project?.name || messages.transactions.noProject}{dashboardUi.separator}{appointment.scheduledStart.toISOString().slice(0, 16).replace("T", " ")}</p>
                   </div>
                 ))
               )}
@@ -477,3 +480,5 @@ export default async function DashboardPage({ params }: Props) {
     </div>
   );
 }
+
+

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type SearchResult = {
   projects: Array<{ id: string; name: string; code: string | null; status: string }>;
@@ -9,12 +10,129 @@ type SearchResult = {
   tasks: Array<{ id: string; title: string; status: string; project: { id: string; name: string; code: string | null } | null }>;
 };
 
+type FlatResult =
+  | { type: "project"; data: SearchResult["projects"][number] }
+  | { type: "customer"; data: SearchResult["customers"][number] }
+  | { type: "quotation"; data: SearchResult["quotations"][number] }
+  | { type: "task"; data: SearchResult["tasks"][number] };
+
 type GlobalSearchProps = {
   orgSlug: string;
   locale: string;
 };
 
+const copy = {
+  th: {
+    placeholder: "ค้นหาโครงการ ลูกค้า ใบเสนอราคา หรือชื่องาน",
+    empty: "ไม่พบผลลัพธ์สำหรับ",
+    projectSection: "โครงการ",
+    customerSection: "ลูกค้า",
+    quotationSection: "ใบเสนอราคา",
+    taskSection: "งาน",
+    noProjectCode: "ไม่มีรหัสโครงการ",
+    noExtraData: "ไม่มีข้อมูลเพิ่มเติม",
+    noProjectLinked: "ไม่ได้ผูกกับโครงการ",
+    navigate: "เลื่อนเลือก",
+    select: "เปิดรายการ",
+    close: "ปิด",
+    projectStatuses: {
+      PLANNING: "วางแผน",
+      ACTIVE: "ใช้งาน",
+      ON_HOLD: "พักงาน",
+      COMPLETED: "เสร็จแล้ว",
+      CANCELLED: "ยกเลิก",
+    },
+    quotationStatuses: {
+      DRAFT: "ร่าง",
+      SENT: "ส่งแล้ว",
+      ACCEPTED: "อนุมัติแล้ว",
+      REJECTED: "ปฏิเสธ",
+      EXPIRED: "หมดอายุ",
+    },
+    taskStatuses: {
+      TODO: "ต้องทำ",
+      IN_PROGRESS: "กำลังทำ",
+      BLOCKED: "ติดบล็อก",
+      DONE: "เสร็จแล้ว",
+      CANCELLED: "ยกเลิก",
+    },
+  },
+  en: {
+    placeholder: "Search projects, customers, quotations, or tasks",
+    empty: "No results found for",
+    projectSection: "Projects",
+    customerSection: "Customers",
+    quotationSection: "Quotations",
+    taskSection: "Tasks",
+    noProjectCode: "No project code",
+    noExtraData: "No additional details",
+    noProjectLinked: "Not linked to a project",
+    navigate: "Navigate",
+    select: "Open",
+    close: "Close",
+    projectStatuses: {
+      PLANNING: "Planning",
+      ACTIVE: "Active",
+      ON_HOLD: "On hold",
+      COMPLETED: "Completed",
+      CANCELLED: "Cancelled",
+    },
+    quotationStatuses: {
+      DRAFT: "Draft",
+      SENT: "Sent",
+      ACCEPTED: "Accepted",
+      REJECTED: "Rejected",
+      EXPIRED: "Expired",
+    },
+    taskStatuses: {
+      TODO: "To do",
+      IN_PROGRESS: "In progress",
+      BLOCKED: "Blocked",
+      DONE: "Done",
+      CANCELLED: "Cancelled",
+    },
+  },
+} as const;
+
+function getStatusColor(status: string) {
+  const colors: Record<string, string> = {
+    PLANNING: "bg-slate-100 text-slate-700",
+    ACTIVE: "bg-emerald-100 text-emerald-700",
+    ON_HOLD: "bg-amber-100 text-amber-700",
+    COMPLETED: "bg-blue-100 text-blue-700",
+    CANCELLED: "bg-red-100 text-red-700",
+    DRAFT: "bg-slate-100 text-slate-700",
+    SENT: "bg-blue-100 text-blue-700",
+    ACCEPTED: "bg-emerald-100 text-emerald-700",
+    REJECTED: "bg-red-100 text-red-700",
+    EXPIRED: "bg-amber-100 text-amber-700",
+    TODO: "bg-slate-100 text-slate-700",
+    IN_PROGRESS: "bg-blue-100 text-blue-700",
+    BLOCKED: "bg-amber-100 text-amber-700",
+    DONE: "bg-emerald-100 text-emerald-700",
+  };
+
+  return colors[status] || "bg-slate-100 text-slate-700";
+}
+
+function getResultLink(type: FlatResult["type"], data: FlatResult["data"], locale: string, orgSlug: string) {
+  switch (type) {
+    case "project":
+      return `/${locale}/org/${orgSlug}/projects/${data.id}`;
+    case "customer":
+      return `/${locale}/org/${orgSlug}/customers/${data.id}`;
+    case "quotation":
+      return `/${locale}/org/${orgSlug}/quotations/${data.id}`;
+    case "task": {
+      const task = data as SearchResult["tasks"][number];
+      return task.project?.id ? `/${locale}/org/${orgSlug}/projects/${task.project.id}/tasks` : "#";
+    }
+  }
+}
+
 export function GlobalSearch({ orgSlug, locale }: GlobalSearchProps) {
+  const router = useRouter();
+  const ui = locale === "th" ? copy.th : copy.en;
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult | null>(null);
@@ -25,57 +143,82 @@ export function GlobalSearch({ orgSlug, locale }: GlobalSearchProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Flatten results for keyboard navigation
-  const flatResults = results
-    ? [
-        ...results.projects.map((p) => ({ type: "project" as const, data: p })),
-        ...results.customers.map((c) => ({ type: "customer" as const, data: c })),
-        ...results.quotations.map((q) => ({ type: "quotation" as const, data: q })),
-        ...results.tasks.map((t) => ({ type: "task" as const, data: t })),
-      ]
-    : [];
+  const flatResults = useMemo<FlatResult[]>(
+    () =>
+      results
+        ? [
+            ...results.projects.map((project) => ({ type: "project" as const, data: project })),
+            ...results.customers.map((customer) => ({ type: "customer" as const, data: customer })),
+            ...results.quotations.map((quotation) => ({ type: "quotation" as const, data: quotation })),
+            ...results.tasks.map((task) => ({ type: "task" as const, data: task })),
+          ]
+        : [],
+    [results],
+  );
 
-  // Keyboard shortcut to open search
+  const openSearch = useCallback(() => {
+    setQuery("");
+    setResults(null);
+    setSelectedIndex(-1);
+    setIsOpen(true);
+  }, []);
+
+  const closeSearch = useCallback(() => {
+    setIsOpen(false);
+  }, []);
+
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setIsOpen((prev) => !prev);
+    const handleGlobalKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        if (isOpen) {
+          closeSearch();
+        } else {
+          openSearch();
+        }
       }
-      if (e.key === "Escape" && isOpen) {
-        setIsOpen(false);
-      }
-    };
 
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
-
-  // Focus input when opened
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-      setQuery("");
-      setResults(null);
-      setSelectedIndex(-1);
-    }
-  }, [isOpen]);
-
-  // Click outside to close
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (overlayRef.current && !overlayRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
+      if (event.key === "Escape" && isOpen) {
+        closeSearch();
       }
     };
 
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleGlobalKeyDown);
+    return () => document.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [closeSearch, isOpen, openSearch]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
     }
+
+    const timeout = setTimeout(() => inputRef.current?.focus(), 100);
+    return () => clearTimeout(timeout);
   }, [isOpen]);
 
-  // Debounced search
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (overlayRef.current && !overlayRef.current.contains(event.target as Node)) {
+        closeSearch();
+      }
+    };
+
+    if (!isOpen) {
+      return;
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [closeSearch, isOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, []);
+
   const performSearch = useCallback(
     async (searchQuery: string) => {
       if (!searchQuery.trim()) {
@@ -85,25 +228,25 @@ export function GlobalSearch({ orgSlug, locale }: GlobalSearchProps) {
 
       setIsLoading(true);
       try {
-        const res = await fetch(
-          `/api/org/${orgSlug}/search?q=${encodeURIComponent(searchQuery)}`,
-          { credentials: "include" }
-        );
-        if (res.ok) {
-          const data = await res.json();
+        const response = await fetch(`/api/org/${orgSlug}/search?q=${encodeURIComponent(searchQuery)}`, {
+          credentials: "include",
+        });
+
+        if (response.ok) {
+          const data = (await response.json()) as SearchResult;
           setResults(data);
         }
       } catch (error) {
-        console.error("Search error:", error);
+        console.error("Global search failed:", error);
       } finally {
         setIsLoading(false);
       }
     },
-    [orgSlug]
+    [orgSlug],
   );
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
     setQuery(value);
     setSelectedIndex(-1);
 
@@ -112,73 +255,67 @@ export function GlobalSearch({ orgSlug, locale }: GlobalSearchProps) {
     }
 
     debounceTimer.current = setTimeout(() => {
-      performSearch(value);
+      void performSearch(value);
     }, 300);
   };
 
-  // Keyboard navigation for results
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
+  const openSelectedResult = (result: FlatResult) => {
+    const href = getResultLink(result.type, result.data, locale, orgSlug);
+    if (href !== "#") {
+      closeSearch();
+      router.push(href);
+    }
+  };
+
+  const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
       setSelectedIndex((prev) => Math.min(prev + 1, flatResults.length - 1));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
       setSelectedIndex((prev) => Math.max(prev - 1, -1));
-    } else if (e.key === "Enter" && selectedIndex >= 0) {
-      e.preventDefault();
+      return;
+    }
+
+    if (event.key === "Enter" && selectedIndex >= 0) {
+      event.preventDefault();
       const result = flatResults[selectedIndex];
       if (result) {
-        window.location.href = getResultLink(result.type, result.data, locale, orgSlug);
+        openSelectedResult(result);
       }
     }
   };
 
-  const getResultLink = (
-    type: string,
-    data: Record<string, unknown>,
-    locale: string,
-    orgSlug: string
-  ): string => {
-    switch (type) {
-      case "project":
-        return `/${locale}/org/${orgSlug}/projects/${(data as { id: string }).id}`;
-      case "customer":
-        return `/${locale}/org/${orgSlug}/customers/${(data as { id: string }).id}`;
-      case "quotation":
-        return `/${locale}/org/${orgSlug}/quotations/${(data as { id: string }).id}`;
-      case "task":
-        // Tasks are nested under projects in this app
-        const taskData = data as { id: string; project?: { id: string } };
-        if (taskData.project?.id) {
-          return `/${locale}/org/${orgSlug}/projects/${taskData.project.id}/tasks/${(data as { id: string }).id}`;
-        }
-        return "#";
-      default:
-        return "#";
+  const getStatusLabel = (type: FlatResult["type"], status: string) => {
+    if (type === "project") {
+      return ui.projectStatuses[status as keyof typeof ui.projectStatuses] ?? status;
     }
+
+    if (type === "quotation") {
+      return ui.quotationStatuses[status as keyof typeof ui.quotationStatuses] ?? status;
+    }
+
+    if (type === "task") {
+      return ui.taskStatuses[status as keyof typeof ui.taskStatuses] ?? status;
+    }
+
+    return status;
   };
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      ACTIVE: "bg-green-100 text-green-800",
-      COMPLETED: "bg-blue-100 text-blue-800",
-      DRAFT: "bg-gray-100 text-gray-800",
-      SENT: "bg-yellow-100 text-yellow-800",
-      ACCEPTED: "bg-green-100 text-green-800",
-      REJECTED: "bg-red-100 text-red-800",
-      TODO: "bg-slate-100 text-slate-800",
-      IN_PROGRESS: "bg-blue-100 text-blue-800",
-      DONE: "bg-green-100 text-green-800",
-    };
-    return colors[status] || "bg-gray-100 text-gray-800";
-  };
-
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[10vh]">
-      <div ref={overlayRef} className="w-full max-w-2xl rounded-xl border bg-[var(--surface)] shadow-2xl" style={{ borderColor: "var(--border)" }}>
-        {/* Search Input */}
+      <div
+        ref={overlayRef}
+        className="w-full max-w-2xl rounded-xl border bg-[var(--surface)] shadow-2xl"
+        style={{ borderColor: "var(--border)" }}
+      >
         <div className="flex items-center border-b px-4" style={{ borderColor: "var(--border)" }}>
           <svg className="h-5 w-5 shrink-0 text-[var(--muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -188,188 +325,172 @@ export function GlobalSearch({ orgSlug, locale }: GlobalSearchProps) {
             type="text"
             value={query}
             onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder="ค้นหาโครงการ, ลูกค้า, ใบเสนอราคา, งาน..."
+            onKeyDown={handleInputKeyDown}
+            placeholder={ui.placeholder}
             className="w-full bg-transparent px-4 py-4 text-[var(--foreground)] outline-none placeholder:text-[var(--muted)]"
           />
-          {isLoading && (
+          {isLoading ? (
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent" />
-          )}
-          <kbd className="hidden shrink-0 rounded border px-2 py-1 text-xs sm:inline" style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+          ) : null}
+          <kbd
+            className="hidden shrink-0 rounded border px-2 py-1 text-xs sm:inline"
+            style={{ borderColor: "var(--border)", color: "var(--muted)" }}
+          >
             ESC
           </kbd>
         </div>
 
-        {/* Results */}
-        {results && (
+        {results ? (
           <div className="max-h-[60vh] overflow-y-auto p-2">
-            {flatResults.length === 0 && query && !isLoading && (
+            {flatResults.length === 0 && query && !isLoading ? (
               <div className="px-4 py-8 text-center text-sm text-[var(--muted)]">
-                ไม่พบผลลัพธ์สำหรับ &quot;{query}&quot;
+                {ui.empty} &quot;{query}&quot;
               </div>
-            )}
+            ) : null}
 
-            {/* Projects */}
-            {results.projects.length > 0 && (
+            {results.projects.length > 0 ? (
               <div className="mb-2">
                 <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
-                  โครงการ
+                  {ui.projectSection}
                 </div>
-                {results.projects.map((project, idx) => {
-                  const globalIdx = flatResults.findIndex(
-                    (r) => r.type === "project" && r.data.id === project.id
-                  );
+                {results.projects.map((project) => {
+                  const globalIndex = flatResults.findIndex((result) => result.type === "project" && result.data.id === project.id);
                   return (
-                    <a
+                    <button
                       key={project.id}
-                      href={`/${locale}/org/${orgSlug}/projects/${project.id}`}
-                      className={`flex items-center justify-between rounded-lg px-3 py-2.5 transition ${
-                        selectedIndex === globalIdx
-                          ? "bg-[var(--primary)]/10"
-                          : "hover:bg-[var(--background)]"
+                      type="button"
+                      onClick={() => openSelectedResult({ type: "project", data: project })}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition ${
+                        selectedIndex === globalIndex ? "bg-[var(--primary)]/10" : "hover:bg-[var(--background)]"
                       }`}
                     >
                       <div className="min-w-0 flex-1">
                         <div className="truncate font-medium text-[var(--foreground)]">{project.name}</div>
-                        <div className="truncate text-sm text-[var(--muted)]">
-                          {project.code || "ไม่มีรหัส"}
-                        </div>
+                        <div className="truncate text-sm text-[var(--muted)]">{project.code || ui.noProjectCode}</div>
                       </div>
                       <span className={`ml-2 shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(project.status)}`}>
-                        {project.status}
+                        {getStatusLabel("project", project.status)}
                       </span>
-                    </a>
+                    </button>
                   );
                 })}
               </div>
-            )}
+            ) : null}
 
-            {/* Customers */}
-            {results.customers.length > 0 && (
+            {results.customers.length > 0 ? (
               <div className="mb-2">
                 <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
-                  ลูกค้า
+                  {ui.customerSection}
                 </div>
                 {results.customers.map((customer) => {
-                  const globalIdx = flatResults.findIndex(
-                    (r) => r.type === "customer" && r.data.id === customer.id
-                  );
+                  const globalIndex = flatResults.findIndex((result) => result.type === "customer" && result.data.id === customer.id);
                   return (
-                    <a
+                    <button
                       key={customer.id}
-                      href={`/${locale}/org/${orgSlug}/customers/${customer.id}`}
-                      className={`flex items-center justify-between rounded-lg px-3 py-2.5 transition ${
-                        selectedIndex === globalIdx
-                          ? "bg-[var(--primary)]/10"
-                          : "hover:bg-[var(--background)]"
+                      type="button"
+                      onClick={() => openSelectedResult({ type: "customer", data: customer })}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition ${
+                        selectedIndex === globalIndex ? "bg-[var(--primary)]/10" : "hover:bg-[var(--background)]"
                       }`}
                     >
                       <div className="min-w-0 flex-1">
                         <div className="truncate font-medium text-[var(--foreground)]">{customer.name}</div>
                         <div className="truncate text-sm text-[var(--muted)]">
-                          {customer.companyName || customer.email || "ไม่มีข้อมูลเพิ่มเติม"}
+                          {customer.companyName || customer.email || ui.noExtraData}
                         </div>
                       </div>
-                    </a>
+                    </button>
                   );
                 })}
               </div>
-            )}
+            ) : null}
 
-            {/* Quotations */}
-            {results.quotations.length > 0 && (
+            {results.quotations.length > 0 ? (
               <div className="mb-2">
                 <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
-                  ใบเสนอราคา
+                  {ui.quotationSection}
                 </div>
                 {results.quotations.map((quotation) => {
-                  const globalIdx = flatResults.findIndex(
-                    (r) => r.type === "quotation" && r.data.id === quotation.id
-                  );
+                  const globalIndex = flatResults.findIndex((result) => result.type === "quotation" && result.data.id === quotation.id);
                   return (
-                    <a
+                    <button
                       key={quotation.id}
-                      href={`/${locale}/org/${orgSlug}/quotations/${quotation.id}`}
-                      className={`flex items-center justify-between rounded-lg px-3 py-2.5 transition ${
-                        selectedIndex === globalIdx
-                          ? "bg-[var(--primary)]/10"
-                          : "hover:bg-[var(--background)]"
+                      type="button"
+                      onClick={() => openSelectedResult({ type: "quotation", data: quotation })}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition ${
+                        selectedIndex === globalIndex ? "bg-[var(--primary)]/10" : "hover:bg-[var(--background)]"
                       }`}
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="truncate font-medium text-[var(--foreground)]">
-                          {quotation.quotationNumber}
-                        </div>
+                        <div className="truncate font-medium text-[var(--foreground)]">{quotation.quotationNumber}</div>
                         <div className="truncate text-sm text-[var(--muted)]">
-                          {quotation.customer.name} {quotation.note ? `- ${quotation.note.slice(0, 50)}` : ""}
+                          {quotation.customer.name}
+                          {quotation.note ? ` - ${quotation.note.slice(0, 50)}` : ""}
                         </div>
                       </div>
                       <span className={`ml-2 shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(quotation.status)}`}>
-                        {quotation.status}
+                        {getStatusLabel("quotation", quotation.status)}
                       </span>
-                    </a>
+                    </button>
                   );
                 })}
               </div>
-            )}
+            ) : null}
 
-            {/* Tasks */}
-            {results.tasks.length > 0 && (
+            {results.tasks.length > 0 ? (
               <div className="mb-2">
                 <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
-                  งาน
+                  {ui.taskSection}
                 </div>
                 {results.tasks.map((task) => {
-                  const globalIdx = flatResults.findIndex(
-                    (r) => r.type === "task" && r.data.id === task.id
-                  );
-                  const link = getResultLink("task", task as unknown as Record<string, unknown>, locale, orgSlug);
+                  const globalIndex = flatResults.findIndex((result) => result.type === "task" && result.data.id === task.id);
                   return (
-                    <a
+                    <button
                       key={task.id}
-                      href={link}
-                      className={`flex items-center justify-between rounded-lg px-3 py-2.5 transition ${
-                        selectedIndex === globalIdx
-                          ? "bg-[var(--primary)]/10"
-                          : "hover:bg-[var(--background)]"
+                      type="button"
+                      onClick={() => openSelectedResult({ type: "task", data: task })}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition ${
+                        selectedIndex === globalIndex ? "bg-[var(--primary)]/10" : "hover:bg-[var(--background)]"
                       }`}
                     >
                       <div className="min-w-0 flex-1">
                         <div className="truncate font-medium text-[var(--foreground)]">{task.title}</div>
                         <div className="truncate text-sm text-[var(--muted)]">
-                          {task.project ? `${task.project.name} (${task.project.code || "N/A"})` : "ไม่มีโครงการ"}
+                          {task.project ? `${task.project.name} (${task.project.code || ui.noProjectCode})` : ui.noProjectLinked}
                         </div>
                       </div>
                       <span className={`ml-2 shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(task.status)}`}>
-                        {task.status}
+                        {getStatusLabel("task", task.status)}
                       </span>
-                    </a>
+                    </button>
                   );
                 })}
               </div>
-            )}
+            ) : null}
           </div>
-        )}
+        ) : null}
 
-        {/* Footer */}
-        <div className="flex items-center justify-between border-t px-4 py-2 text-xs" style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+        <div
+          className="flex items-center justify-between border-t px-4 py-2 text-xs"
+          style={{ borderColor: "var(--border)", color: "var(--muted)" }}
+        >
           <div className="flex items-center gap-2">
             <kbd className="rounded border px-1.5 py-0.5" style={{ borderColor: "var(--border)" }}>
               ↑↓
             </kbd>
-            <span>นำทาง</span>
+            <span>{ui.navigate}</span>
           </div>
           <div className="flex items-center gap-2">
             <kbd className="rounded border px-1.5 py-0.5" style={{ borderColor: "var(--border)" }}>
               Enter
             </kbd>
-            <span>เลือก</span>
+            <span>{ui.select}</span>
           </div>
           <div className="flex items-center gap-2">
             <kbd className="rounded border px-1.5 py-0.5" style={{ borderColor: "var(--border)" }}>
               Esc
             </kbd>
-            <span>ปิด</span>
+            <span>{ui.close}</span>
           </div>
         </div>
       </div>

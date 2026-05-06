@@ -1,448 +1,259 @@
-# Test Plan
-
-## Scope
-
-เอกสารนี้สรุปแผนทดสอบ end-to-end, regression, และ test data สำหรับระบบ `ไซต์งานโปร` ตามสถานะ implementation ปัจจุบันใน repo นี้
-
-เป้าหมายของรอบนี้:
-
-- ครอบคลุม auth, onboarding, org access, member invite, customer pipeline, survey, quotation, project, tasks, transactions, reports, admin/subscription
-- มี test data ชุด `Tes001` ที่ใช้ซ้ำได้
-- แยก known blockers ที่ต้องแก้ก่อนจึงจะเทสครบทุก flow ได้
-
-## Current Risks And Blockers
-
-ต้องรับรู้ก่อนเริ่มเทสเต็มชุด:
-
-1. `worker-teams` และ `work-logs` ยังมี blocker ระดับ route implementation
-   - `src/app/api/org/[orgSlug]/worker-teams/route.ts`
-   - `src/app/api/org/[orgSlug]/worker-teams/[teamId]/members/route.ts`
-   - `src/app/api/org/[orgSlug]/work-logs/route.ts`
-   - ใช้ `requireOrganizationAccess` จาก path ที่หาไม่เจอ
-   - ใช้ `getPrisma()` แต่ `src/lib/db.ts` export แค่ `prisma`
-
-2. policy รหัสผ่านไม่ตรงกัน
-   - `src/app/api/register/route.ts` กำหนดขั้นต่ำ 8 ตัวอักษร
-   - `src/app/api/reset-password/route.ts` กำหนดขั้นต่ำ 6 ตัวอักษร
-
-3. `survey -> quotation` ยังเสี่ยงสร้างซ้ำ
-   - `src/app/api/org/[orgSlug]/survey-appointments/[appointmentId]/convert-to-quotation/route.ts`
-
-4. `quotation -> project` ยังไม่ guard สถานะ quotation
-   - `src/app/api/org/[orgSlug]/quotations/[quotationId]/convert-to-project/route.ts`
-
-5. search หลายจุดมีแนวโน้มแคบเกินคาดจากการประกอบเงื่อนไขแบบ AND
-
-6. super admin ยังอิง `SUPER_ADMIN_EMAILS` ได้แม้ไม่มี email verification
-
-## Task Groups
-
-1. Stabilization
-   - แก้ blocker ที่ทำให้ test flow เดินไม่ครบ
-   - ปรับ password policy ให้ตรงกัน
-   - เพิ่ม guard กัน duplicate conversion และ invalid conversion
-
-2. Test Data
-   - สร้าง seed ชุด `Tes001`
-   - ให้ rerun ได้ซ้ำและ predictable
-
-3. Automated Regression
-   - Unit tests สำหรับ business logic
-   - API integration tests สำหรับ routes หลัก
-   - UI smoke/component tests สำหรับหน้าหลัก
-
-4. Manual E2E
-   - เดิน full product flow ด้วยข้อมูล `Tes001`
-   - ตรวจ positive, permission, และ negative cases
-
-## End-To-End Flow Matrix
-
-### 1. Guest And Locale
-
-- เข้า `/` ต้อง redirect ไป `/th`
-- guest เข้า `/th/login`, `/th/register`, `/th/forgot-password` ได้
-- guest เข้า `/th/org/...` ต้องถูก redirect ไป login
-- guest เข้า `/th/reset-password/[token]` ได้
-- guest เข้า invite page ตาม flow ที่ระบบรองรับได้
-
-### 2. Register / Login / Reset Password
-
-- สมัครสมาชิกสำเร็จ
-- สมัครด้วยอีเมลซ้ำต้องถูกปฏิเสธ
-- สมัครด้วย password สั้นต้องถูกปฏิเสธ
-- login สำเร็จด้วย email/password
-- login ผิดรหัสผ่านต้องล้มเหลว
-- forgot-password สำหรับ email ที่มีอยู่จริง
-- forgot-password สำหรับ email ที่ไม่มีในระบบต้องตอบข้อความ success เหมือนกัน
-- reset password ด้วย token ที่ valid สำเร็จ
-- token เดิมใช้ซ้ำไม่ได้
-- production mode ต้องไม่ expose `resetUrl`
-
-### 3. Onboarding / First Organization
-
-- ผู้ใช้ใหม่ที่ยังไม่มี org ต้องเข้า `/th/onboarding/create-organization`
-- สร้าง organization แรกสำเร็จ
-- ผู้สร้างต้องได้ role `OWNER`
-- `lastOrganizationId` ต้องถูกตั้งค่า
-- สร้างเสร็จต้อง redirect ไป `/th/org/[slug]/dashboard`
-
-### 4. Organization Access / Route Protection
-
-- user ที่ไม่มี membership เข้า org อื่นไม่ได้
-- archived org ต้องกัน user ปกติ
-- super admin ต้องเข้า org ได้แม้ไม่มี membership จริง
-- login แล้วเข้า guest routes ต้องถูก redirect กลับ home target
-
-### 5. Member Management / Invite
-
-- OWNER สร้าง invite ได้
-- ADMIN สร้าง invite role ที่อนุญาตได้
-- MANAGER และ STAFF ทำไม่ได้
-- invite email ซ้ำเดิมที่ยัง pending ต้องถูกกัน
-- seat limit เต็มต้องสร้าง invite ไม่ได้
-- accept invite ด้วย account ที่ email ตรงกันสำเร็จ
-- accept invite ด้วย account คนละ email ต้องถูกปฏิเสธ
-- revoke invite สำเร็จ
-- เปลี่ยน role สมาชิกได้ตามสิทธิ
-- ห้ามแก้ role ตัวเอง
-- ห้ามลบตัวเอง
-- ห้ามลบ owner คนสุดท้าย
-
-### 6. Customers
-
-- create customer
-- list customers
-- update customer
-- delete customer
-- validation ของ field สำคัญ
-- linked counts ของ quotations / surveys / projects แสดงถูก
-
-### 7. Survey Appointments
-
-- create survey appointment
-- update survey appointment
-- cancel survey appointment
-- reschedule survey appointment
-- status flow รองรับ `PENDING`, `CONFIRMED`, `COMPLETED`, `CANCELLED`, `RESCHEDULED`
-- assign ผู้รับผิดชอบได้
-- convert survey เป็น quotation ได้
-- ต้องมี test กัน duplicate conversion ต่อ appointment เดิม
-
-### 8. Quotations
-
-- create quotation ปกติ
-- quotation items หลายบรรทัด
-- subtotal / discount / VAT / total คำนวณถูก
-- update status `DRAFT`, `SENT`, `ACCEPTED`, `REJECTED`, `EXPIRED`
-- quotation detail / preview เปิดได้
-- convert quotation เป็น project ได้
-- ถ้า convert ซ้ำต้องคืน project เดิมหรือถูกกันอย่างชัดเจน
-
-### 9. Projects
-
-- create project
-- update project
-- เปลี่ยน status project
-- ผูก customer / quotation ได้ถูกต้อง
-- project detail แสดง budget, transactions, tasks, related entities ครบ
-- project code ต้องไม่ชนกันเมื่อ rerun seed หรือสร้างหลายรายการ
-
-### 10. Budget Lines And Approval Flow
-
-- OWNER/ADMIN สร้าง budget line ต่ำกว่า threshold ได้ตรง
-- MANAGER สร้าง budget line ที่เกิน threshold ต้องได้ `approvalRequired`
-- approver approve แล้วต้องเกิด budget line จริง
-- approver reject แล้วต้องไม่เกิด budget line
-- audit log และ budget revision ต้องถูกสร้าง
-
-### 11. Tasks And Schedule
-
-- create task
-- assign task
-- filter ตาม status / priority / assignee
-- overdue highlight แสดงถูก
-- mark `DONE` แล้ว progress ต้องเป็น 100
-- STAFF/SUBCONTRACTOR update งานที่ assigned ให้ตัวเองได้ตาม flow ปัจจุบัน
-
-### 12. Transactions
-
-- create income transaction
-- create expense transaction
-- payment status รองรับ `PENDING`, `PAID`, `PARTIALLY_PAID`, `CANCELLED`
-- ผูก project และ budget category ได้
-- amount validation ทำงานถูก
-- filter / search ทำงานถูก
-- update transaction ได้ตามสิทธิ
-- delete transaction ได้ตามสิทธิ
-- attachment flow ต้องเทสถ้าเปิดใช้งานจริงในรอบนั้น
-
-### 13. Reports And Audit
-
-- reports page โหลดได้
-- budget vs actual แสดงข้อมูล project และ category ถูก
-- profit/loss filter ตามช่วงเวลา / project / transaction type ได้
-- approvals page แสดง pending requests ถูก
-- audit page แสดง before/after diff อ่านได้
-
-### 14. Admin And Subscription
-
-- super admin เข้า `/th/admin` ได้
-- user ปกติเข้าไม่ได้
-- create organization ใน admin flow
-- edit organization ใน admin flow
-- archive organization
-- assign subscription แบบ monthly / yearly / lifetime
-- seat limit override ทำงานถูก
-- archived org behavior ถูกต้องกับทั้ง super admin และสมาชิกทั่วไป
-
-### 15. Worker Teams And Work Logs
-
-กลุ่มนี้ยังไม่ควรนับเป็น pass จนกว่า blocker route จะถูกแก้
-
-เมื่อแก้ blocker แล้วต้องเทส:
-
-- create worker team
-- update worker team
-- delete worker team
-- add team member
-- remove team member
-- leader switch / main worker behavior
-- create work log
-- list work logs
-- approve/reject work log
-
-## Automated Test Layers
-
-### Unit Tests
-
-ไฟล์เป้าหมาย:
-
-- `src/lib/auth.ts`
-- `src/lib/organization.ts`
-- `src/lib/budget.ts`
-- `src/lib/approvals.ts`
-- `src/lib/audit.ts`
-- `src/lib/slug.ts`
-- `src/lib/locales.ts`
-- `src/lib/messages.ts`
-- `src/lib/uploads.ts`
-- `src/lib/app-context.ts`
-- `src/lib/password-reset.ts`
-- `src/lib/subscription.ts`
-
-### API Integration Tests
-
-route เป้าหมาย:
-
-- `POST /api/register`
-- `POST /api/forgot-password`
-- `POST /api/reset-password`
-- `POST /api/organizations`
-- `POST /api/invites/[token]/accept`
-- `POST /api/org/[orgSlug]/invites`
-- `POST /api/org/[orgSlug]/invites/[inviteId]/revoke`
-- `PATCH|DELETE /api/org/[orgSlug]/memberships/[membershipId]`
-- customer routes
-- survey appointment routes
-- quotation routes
-- project routes
-- budget-line routes
-- task routes
-- transaction routes
-- approval routes
-- settings routes
-- admin organization and subscription routes
-
-### UI Smoke / Component Tests
-
-หน้าหลักที่ควรมี smoke coverage:
-
-- `/[locale]/login`
-- `/[locale]/register`
-- `/[locale]/forgot-password`
-- `/[locale]/onboarding/create-organization`
-- `/[locale]/org/[orgSlug]/dashboard`
-- `/[locale]/org/[orgSlug]/members`
-- `/[locale]/org/[orgSlug]/customers`
-- `/[locale]/org/[orgSlug]/quotations`
-- `/[locale]/org/[orgSlug]/projects`
-- `/[locale]/org/[orgSlug]/transactions`
-- `/[locale]/admin`
-
-## Test Data: Tes001
-
-ใช้ prefix `tes001` กับ user, org slug, และ entity สำคัญทุกตัว เพื่อค้นหาและ cleanup ได้ง่าย
-
-### Accounts
-
-1. Owner
-   - email: `tes001.owner@sitepro.local`
-   - password: `Tes001pass!`
-   - name: `Tes001 Owner`
-
-2. Admin
-   - email: `tes001.admin@sitepro.local`
-   - password: `Tes001pass!`
-   - name: `Tes001 Admin`
-
-3. Manager
-   - email: `tes001.manager@sitepro.local`
-   - password: `Tes001pass!`
-   - name: `Tes001 Manager`
-
-4. Staff
-   - email: `tes001.staff@sitepro.local`
-   - password: `Tes001pass!`
-   - name: `Tes001 Staff`
-
-5. Subcontractor
-   - email: `tes001.subcon@sitepro.local`
-   - password: `Tes001pass!`
-   - name: `Tes001 Subcon`
-
-6. Invite Target
-   - email: `tes001.invited@sitepro.local`
-   - password: `Tes001pass!`
-   - name: `Tes001 Invited`
-
-7. Super Admin
-   - email: `tes001.superadmin@sitepro.local`
-   - password: `Tes001pass!`
-   - ต้องอยู่ใน `SUPER_ADMIN_EMAILS` ตอนเทส
-
-### Organization
-
-- name: `Tes001 Construction Group`
-- slug: `tes001-construction-group`
-- approval threshold: `100000` บาท
-- locale default: `th`
-
-### Customers
-
-1. `Tes001 ลูกค้า A`
-   - company: `Tes001 Home Build Co., Ltd.`
-   - phone: `0811111001`
-
-2. `Tes001 ลูกค้า B`
-   - company: `Tes001 Office Fitout Co., Ltd.`
-   - phone: `0811111002`
-
-### Survey Appointments
-
-1. `Tes001 Survey A`
-   - customer: `Tes001 ลูกค้า A`
-   - status: `CONFIRMED`
-   - assignedTo: `Tes001 Manager`
-
-2. `Tes001 Survey B`
-   - customer: `Tes001 ลูกค้า B`
-   - status: `PENDING`
-
-### Quotations
-
-1. `Tes001-QT-001`
-   - source: `Tes001 Survey A`
-   - status: `SENT`
-   - taxEnabled: `true`
-   - taxRate: `7`
-   - items:
-     - demolition 1 lot 120000
-     - interior fit-out 1 lot 350000
-     - MEP 1 lot 180000
-
-2. `Tes001-QT-002`
-   - source: manual quotation
-   - status: `DRAFT`
-   - taxEnabled: `false`
-
-### Projects
-
-1. `Tes001 Project A`
-   - source quotation: `Tes001-QT-001`
-   - status: `ACTIVE`
-   - code: `TES001-PRJ-A`
-
-2. `Tes001 Project B`
-   - source: manual
-   - status: `PLANNING`
-   - code: `TES001-PRJ-B`
-
-### Budget Categories
-
-- `Tes001 Materials`
-- `Tes001 Labor`
-- `Tes001 Equipment`
-
-### Budget Lines
-
-- Project A / Materials / 300000
-- Project A / Labor / 200000
-- Project A / Equipment / 100000
-- approval case: Manager ขอเพิ่ม Materials จำนวนมากพอให้เกิน threshold
-
-### Tasks
-
-1. `Tes001 Task A`
-   - project: `Tes001 Project A`
-   - assignee: `Tes001 Staff`
-   - status: `IN_PROGRESS`
-   - priority: `HIGH`
-
-2. `Tes001 Task B`
-   - project: `Tes001 Project A`
-   - assignee: `Tes001 Subcon`
-   - status: `TODO`
-   - priority: `MEDIUM`
-
-3. `Tes001 Task Overdue`
-   - project: `Tes001 Project A`
-   - due date: ย้อนหลัง
-   - status: `TODO`
-
-### Transactions
-
-1. Expense / Materials / `PAID` / 85000
-2. Expense / Labor / `PENDING` / 42000
-3. Income / Deposit / `PAID` / 180000
-4. Expense / Equipment / `PARTIALLY_PAID` / 25000
-
-### Subscription
-
-- plan: `monthly`
-- seatLimitOverride: `6`
-- ใช้ทดสอบ seat limit พร้อม pending invites
-
-### Worker Team / Work Log
-
-ใช้หลังแก้ blocker:
-
-- team: `Tes001 Team Alpha`
-- members:
-  - `Tes001 Staff` = `LEADER`
-  - `Tes001 Subcon` = `MEMBER`
-- work log 1: 480 นาที, `PENDING`
-- work log 2: 300 นาที, `APPROVED`
-
-## Recommended Execution Order
-
-1. แก้ blockers ที่ทำให้ flow เทสไม่ครบ
-2. สร้างหรือเตรียม seed `Tes001`
-3. รัน auth + onboarding + route protection
-4. รัน member invite + role management
-5. รัน customer -> survey -> quotation -> project flow
-6. รัน budget lines + approval flow
-7. รัน tasks + schedule + transactions
-8. รัน reports + audit
-9. รัน admin + subscription
-10. รัน worker teams + work logs หลังแก้ route blockers
-
-## Done Criteria
-
-งานรอบทดสอบนี้ถือว่าเสร็จเมื่อ:
-
-1. auth, onboarding, invite, org access, super admin ไม่ regression
-2. core product flow `customer -> survey -> quotation -> project -> task/transaction -> report` ผ่านครบ
-3. approval flow ผ่านทั้ง approve และ reject
-4. archived org, seat limit, และ permission negative cases ผ่าน
-5. worker team/work log ถูกจัดการเป็น known blocker หรือผ่านครบหลังแก้
-6. `npm run lint` และ test suite ที่เกี่ยวข้องผ่าน
+# Test Plan: Refactor + Demo Data Regression
+
+อัปเดตล่าสุด: 2026-05-06
+สถานะ: ใช้เป็น checklist หลังเก็บ docs, seed, และ UX/UI polish
+
+## 1. เป้าหมาย
+
+แผนนี้ใช้ตรวจ 3 เรื่องพร้อมกัน:
+
+1. demo seed สร้าง workspace ตัวอย่างได้จริง
+2. flow หลักของ product ไม่ regression หลัง refactor
+3. หน้าที่เก็บ UX/UI และ localization แล้ว ยังทำงานตรง behavior เดิม
+
+## 2. Test Scope
+
+ครอบคลุม:
+- auth basics
+- org-aware routes
+- members/invite
+- customers
+- projects
+- project tasks
+- project schedule
+- survey appointments
+- quotations
+- transactions
+- reports
+- worker teams
+- work logs
+- localization / global search
+- print-ready documents
+- AI assistant (future scope)
+
+ไม่โฟกัสในรอบนี้:
+- production deploy hardening
+- cross-browser matrix เต็มรูปแบบ
+- performance benchmark เชิงลึก
+
+## 3. Pre-test Setup
+
+### Commands
+
+```bash
+npm run seed:demo
+npm run lint
+npm run build
+```
+
+### Expected demo baseline
+
+หลังรัน `npm run seed:demo` ควรมีอย่างน้อย:
+
+- demo owner account
+- demo staff account
+- 1 demo organization
+- customers หลายแบบ
+- projects หลายสถานะ
+- quotations หลายสถานะ
+- survey appointments หลายสถานะ
+- transactions income/expense
+- worker teams
+- worker assignments
+- work logs
+
+## 4. Smoke Checklist
+
+### 4.1 Auth and organization
+
+- [ ] login ด้วย demo owner ได้
+- [ ] login ด้วย demo staff ได้
+- [ ] redirect เข้า org ล่าสุดได้ถูก
+- [ ] org routes ไม่เปิดให้ guest
+
+### 4.2 Members and invite
+
+- [ ] เปิดหน้า members ได้
+- [ ] เห็น active members และ pending invites
+- [ ] invite member ใหม่ได้
+- [ ] revoke invite ได้
+- [ ] เปลี่ยน role สมาชิกได้ตามสิทธิ์
+
+### 4.3 Customers
+
+- [ ] เปิดหน้ารายชื่อลูกค้าได้
+- [ ] search/filter ทำงาน
+- [ ] create customer ได้
+- [ ] edit customer ได้
+- [ ] delete customer ได้
+- [ ] เปิด customer detail ได้
+
+### 4.4 Projects
+
+- [ ] เปิดหน้ารายการโครงการได้
+- [ ] create/edit/delete project ได้
+- [ ] filter ตาม status/customer ได้
+- [ ] export CSV ได้
+- [ ] เปิด project detail ได้
+
+### 4.5 Tasks and schedule
+
+- [ ] เปิดหน้า tasks ของ project ได้
+- [ ] create/edit/update task ได้
+- [ ] assigned member แสดงถูก
+- [ ] schedule page อ่านข้อมูล demo ได้
+- [ ] task status / progress สอดคล้องกับข้อมูลที่ seed มา
+
+### 4.6 Survey appointments
+
+- [ ] create appointment ได้
+- [ ] edit/delete appointment ได้
+- [ ] filter ตาม status/customer/project ได้
+- [ ] convert appointment to quotation ได้
+- [ ] copy ภาษาไทย/อังกฤษไม่เพี้ยน
+
+### 4.7 Quotations
+
+- [ ] create quotation ได้
+- [ ] edit/delete quotation ได้
+- [ ] item lines คำนวณ subtotal/tax/total ถูก
+- [ ] filter ตาม status/customer/project ได้
+- [ ] เปิด quotation detail ได้
+- [ ] print quotation ออกมาแล้ว layout ไม่แตก
+
+### 4.8 Transactions
+
+- [ ] create transaction ได้
+- [ ] edit/delete transaction ได้
+- [ ] receipt upload flow ยังทำงาน
+- [ ] metric cards แสดง income/expense/net ถูก
+- [ ] filter ตาม type/payment/project/category ได้
+- [ ] export CSV ได้
+
+### 4.9 Worker teams
+
+- [ ] เปิดหน้า worker teams ได้
+- [ ] create team ได้
+- [ ] add member เข้า team ได้
+- [ ] ตั้งค่า wage แบบ daily/monthly ได้
+- [ ] create worker assignment ได้
+- [ ] estimated cost คำนวณและแสดงผลได้
+
+### 4.10 Work logs
+
+- [ ] เปิดหน้า work logs ได้
+- [ ] create/edit/delete log ได้
+- [ ] approve/reject log ได้
+- [ ] filter ตาม status/team/project/date ได้
+- [ ] worker/project/team mapping ถูกต้อง
+
+### 4.11 Reports
+
+- [ ] เปิดหน้า reports ได้
+- [ ] approvals report มีข้อมูลอ่านได้
+- [ ] audit report มีข้อมูลอ่านได้
+- [ ] ตัวเลข dashboard/report ไม่เป็นศูนย์ทั้งหมดหลัง seed
+
+### 4.12 Global search and localization
+
+- [ ] global search เปิดได้
+- [ ] keyboard shortcut ทำงาน
+- [ ] search project/customer/quotation/task ได้
+- [ ] ไม่มีข้อความไทย mojibake
+- [ ] label/help text สอดคล้อง locale
+
+### 4.13 Print documents
+
+- [ ] ปุ่ม print ทำงาน
+- [ ] ส่วน control/navigation ที่ไม่ควรพิมพ์ถูกซ่อน
+- [ ] header เอกสารและ metadata แสดงครบ
+- [ ] ตารางรายการไม่ล้นกระดาษ
+- [ ] totals block ไม่แตกหน้าแบบอ่านยาก
+- [ ] สี/เส้นขอบ/spacing ยังดูเป็นเอกสารจาก product เดียวกัน
+- [ ] A4 preview ใช้งานได้ทั้งไทยและอังกฤษ
+
+## 5. UX/UI Verification
+
+ใช้เช็กหลังเก็บงาน visual consistency:
+
+- [ ] page header ทุกหน้าหลักมี hierarchy ชัด
+- [ ] filter bar รูปแบบใกล้กันระหว่าง manager หลัก
+- [ ] empty state ไม่ล้น ไม่โล่งเกิน
+- [ ] action buttons ใช้ tone สอดคล้องกัน
+- [ ] alert success/error ใช้ pattern เดียวกัน
+- [ ] spacing ใน card/list/form ไม่แน่นเกิน
+- [ ] mobile layout ยังอ่านได้
+- [ ] print layout มี hierarchy ชัดและไม่ดูเหมือนหน้าเว็บที่ถูกแคปมาเฉย ๆ
+
+## 6. Demo Data Verification
+
+สิ่งที่ต้องเห็นหลังปรับ `prisma/demo-seed.mjs`:
+
+- [ ] project active อย่างน้อย 1
+- [ ] project planning/completed อย่างน้อยอย่างละ 1
+- [ ] quotation draft/sent/accepted และ rejected หรือ expired
+- [ ] worker team อย่างน้อย 2 ทีม
+- [ ] member แบบ daily และ monthly
+- [ ] assignment หลาย status
+- [ ] work logs pending/approved/rejected
+- [ ] transactions income/expense หลาย category
+- [ ] reports มีข้อมูลสัมพันธ์กันจริง
+
+## 6.5 AI readiness verification (future)
+
+ก่อนเริ่ม implement AI จริง ควรเช็กว่าข้อมูลตั้งต้นพร้อม:
+
+- [ ] project/task/transaction/budget data มีความสัมพันธ์พอให้สรุปสถานะได้
+- [ ] worker assignment / work log data พร้อมใช้สำหรับ workforce insight
+- [ ] approval / audit data พร้อมใช้สำหรับ explanation use case
+- [ ] quotation / survey flow มีข้อมูลพอสำหรับ alert และ follow-up drafting
+- [ ] implementation อ้างอิงจาก [ai-plan.md](J:/devRepo/demoNextjs/demoproject/ai-plan.md) ตรงกันทั้ง endpoint, guardrails, และ fallback rules
+
+## 7. Regression Watchlist
+
+จุดที่ต้องระวังเป็นพิเศษ:
+
+- Prisma seed ลบ/create demo org แล้วกระทบ user preference หรือ relation หรือไม่
+- worker assignment / work log relation ทำให้หน้าเก่า query fail หรือไม่
+- localization update ทำให้ key translation ตกหรือไม่
+- UI refactor ทำให้ form submit path เปลี่ยนโดยไม่ตั้งใจหรือไม่
+- shared styling update ทำให้หน้า detail หรือ print layout เพี้ยนหรือไม่
+- AI endpoints ในอนาคตอาจเผลอเปิดข้อมูลข้าม organization ถ้า query scope ไม่ชัด
+- AI summary อาจสรุปผิดถ้าปล่อยให้ model คิดตัวเลขแทนแอป
+
+## 7.5 AI validation checklist (future)
+
+เมื่อเริ่มทำ AI จริง ควรเพิ่ม checklist นี้:
+
+- [ ] AI summary อ้างอิงตัวเลขจริงจากระบบ
+- [ ] AI ไม่สรุปข้าม organization
+- [ ] AI respect role/permission
+- [ ] AI alerts ไม่เตือนซ้ำแบบ noisy เกินไป
+- [ ] AI drafting แยกชัดว่าเป็น generated text
+- [ ] AI prediction ระบุว่าเป็น estimate ไม่ใช่ fact
+- [ ] AI response timeout/fallback ทำงาน
+- [ ] vLLM API failure ไม่ทำให้หน้าหลักพังทั้งหน้า
+
+## 8. Exit Criteria
+
+รอบนี้ถือว่าผ่านเมื่อ:
+
+- `npm run seed:demo` ผ่าน
+- `npm run lint` ผ่าน หรือมีรายการค้างชัดเจนแยกออกจาก scope
+- `npm run build` ผ่าน
+- smoke checklist ผ่านใน flow หลัก
+- ไม่เหลือข้อความไทยเพี้ยนในหน้าหลักที่ผู้ใช้เห็น
+- quotation print view ใช้งานได้และมีคุณภาพพอสำหรับแชร์ลูกค้า/พิมพ์ PDF
+
+สำหรับ AI phase ในอนาคต ควรถือว่าผ่านเมื่อ:
+
+- มี org-scoped AI architecture ชัดเจน
+- deterministic calculation layer อยู่ก่อน LLM summary
+- AI responses ถูก audit/log ได้
+- vLLM API integration มี timeout, retry, และ graceful fallback
+
+## 9. Notes
+
+- ถ้ามีการขยาย scope UI มากกว่าที่วางไว้ ให้ rerun checklist ทั้ง section 4 และ 5
+- ถ้ามีการแก้ seed schema/relations ให้ทวน worker-teams และ work-logs เป็นพิเศษ
+- ถ้าเริ่ม implement AI จริง ให้ใช้ [ai-plan.md](J:/devRepo/demoNextjs/demoproject/ai-plan.md) เป็น baseline ก่อนแตก task ย่อย
