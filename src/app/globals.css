@@ -22,6 +22,30 @@
   /* Semantic */
   --success: #22c55e;
   --error: #ef4444;
+
+  /* DESIGN.md tokens - for incremental migration */
+  --design-canvas: #0f0f0f;
+  --design-canvas-deep: #000000;
+  --design-surface-card: #181818;
+  --design-surface-card-elevated: #222222;
+  --design-surface-strong: #2a2a2a;
+  --design-ink: #ffffff;
+  --design-body: #a8a8a8;
+  --design-body-strong: #ffffff;
+  --design-muted: #888888;
+  --design-muted-soft: #666666;
+  --design-hairline: #222222;
+  --design-hairline-soft: #1a1a1a;
+  --design-hairline-strong: #333333;
+  --design-primary: #0007cd;
+  --design-primary-active: #0005a3;
+  --design-primary-glow: #1a26ff;
+  --design-on-primary: #ffffff;
+  --design-on-dark: #ffffff;
+  --design-accent-cyan: #00d4ff;
+  --design-accent-violet: #7b3aed;
+  --design-semantic-error: #ff4d4d;
+  --design-semantic-success: #33d17a;
 }
 
 @theme inline {
@@ -41,6 +65,20 @@
   --color-error: var(--error);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  /* DESIGN.md tokens - for incremental migration */
+  --color-design-canvas: var(--design-canvas);
+  --color-design-surface-card: var(--design-surface-card);
+  --color-design-surface-card-elevated: var(--design-surface-card-elevated);
+  --color-design-surface-strong: var(--design-surface-strong);
+  --color-design-ink: var(--design-ink);
+  --color-design-body: var(--design-body);
+  --color-design-muted: var(--design-muted);
+  --color-design-hairline: var(--design-hairline);
+  --color-design-primary: var(--design-primary);
+  --color-design-primary-active: var(--design-primary-active);
+  --color-design-primary-glow: var(--design-primary-glow);
+  --color-design-semantic-error: var(--design-semantic-error);
+  --color-design-semantic-success: var(--design-semantic-success);
 }
 
 * {

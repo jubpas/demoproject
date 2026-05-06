@@ -142,21 +142,27 @@ export function CustomerManager({ locale, orgSlug, customers, canManage, copy }:
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [query, setQuery] = useState("");
+  // New filter states to standardize pattern with other managers
+  type ProjectsFilter = "ALL" | "WITH_PROJECTS" | "WITHOUT_PROJECTS";
+  type QuotationsFilter = "ALL" | "WITH_QUOTATIONS" | "WITHOUT_QUOTATIONS";
+  const [projectsFilter, setProjectsFilter] = useState<ProjectsFilter>("ALL");
+  const [quotationsFilter, setQuotationsFilter] = useState<QuotationsFilter>("ALL");
 
   const filteredCustomers = useMemo(() => {
     const keyword = query.trim().toLowerCase();
-    if (!keyword) {
-      return customers;
-    }
-
-    return customers.filter((customer) =>
-      [customer.name, customer.companyName, customer.email, customer.phone]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(keyword),
-    );
-  }, [customers, query]);
+    return customers.filter((customer) => {
+      const matchesKeyword = keyword
+        ? [customer.name, customer.companyName, customer.email, customer.phone]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase()
+            .includes(keyword)
+        : true;
+      const hasProjects = projectsFilter === "ALL" || (projectsFilter === "WITH_PROJECTS" ? (customer.projectCount > 0) : (customer.projectCount === 0));
+      const hasQuotations = quotationsFilter === "ALL" || (quotationsFilter === "WITH_QUOTATIONS" ? (customer.quotationCount > 0) : (customer.quotationCount === 0));
+      return matchesKeyword && hasProjects && hasQuotations;
+    });
+  }, [customers, query, projectsFilter, quotationsFilter]);
 
   function updateForm(field: keyof CustomerForm, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -246,6 +252,12 @@ export function CustomerManager({ locale, orgSlug, customers, canManage, copy }:
     }
   }
 
+  function clearFilters() {
+    setQuery("");
+    setProjectsFilter("ALL");
+    setQuotationsFilter("ALL");
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader title={copy.customers.title} description={copy.customers.subtitle} />
@@ -269,15 +281,23 @@ export function CustomerManager({ locale, orgSlug, customers, canManage, copy }:
 
         <DataPanel
           title={copy.customers.listTitle}
-          actions={
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search customer"
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-            />
-          }
+          actions={<span className="text-xs font-medium text-slate-500">{filteredCustomers.length}/{customers.length}</span>}
         >
+          {/* Filter bar (search + hasProjects + hasQuotations) */}
+          <div className="mb-4 grid gap-3 lg:grid-cols-[1.2fr_0.8fr_0.8fr_auto]">
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={"Search customer"} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" />
+            <select value={projectsFilter} onChange={(event) => setProjectsFilter(event.target.value as ProjectsFilter)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+              <option value="ALL">All projects</option>
+              <option value="WITH_PROJECTS">With projects</option>
+              <option value="WITHOUT_PROJECTS">Without projects</option>
+            </select>
+            <select value={quotationsFilter} onChange={(event) => setQuotationsFilter(event.target.value as QuotationsFilter)} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+              <option value="ALL">All quotations</option>
+              <option value="WITH_QUOTATIONS">With quotations</option>
+              <option value="WITHOUT_QUOTATIONS">Without quotations</option>
+            </select>
+            <button type="button" onClick={clearFilters} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-white">Clear filters</button>
+          </div>
           {filteredCustomers.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center">
               <p className="text-lg font-medium text-slate-900">{copy.customers.emptyTitle}</p>

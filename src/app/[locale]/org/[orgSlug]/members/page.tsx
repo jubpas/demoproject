@@ -73,14 +73,14 @@ export default async function MembersPage({ params }: Props) {
         id: item.id,
         name: item.user.name || item.user.email || "User",
         email: item.user.email,
-        role: item.role,
+        role: (["OWNER", "ADMIN", "MANAGER", "STAFF"].includes(item.role) ? item.role : "STAFF") as "OWNER" | "ADMIN" | "MANAGER" | "STAFF",
         joinedAt: item.createdAt.toISOString(),
         isCurrentUser: item.userId === user.id,
       }))}
       invites={invites.map((item) => ({
         id: item.id,
         email: item.email,
-        role: item.role,
+        role: (["OWNER", "ADMIN", "MANAGER", "STAFF"].includes(item.role) ? item.role : "STAFF") as "OWNER" | "ADMIN" | "MANAGER" | "STAFF",
         status: item.status,
         expiresAt: item.expiresAt.toISOString(),
         invitedByName: item.invitedBy.name || item.invitedBy.email || "User",

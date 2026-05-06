@@ -19,7 +19,7 @@ type ResetPasswordMessages = {
 const messagesByLocale: Record<Locale, ResetPasswordMessages> = {
   th: {
     required: "กรุณากรอกข้อมูลให้ครบ",
-    passwordTooShort: "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร",
+    passwordTooShort: "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร",
     invalid: "ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้องหรือไม่สามารถใช้งานได้แล้ว",
     expired: "ลิงก์รีเซ็ตรหัสผ่านหมดอายุแล้ว กรุณาขอใหม่อีกครั้ง",
     success: "ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว กรุณาเข้าสู่ระบบอีกครั้ง",
@@ -27,7 +27,7 @@ const messagesByLocale: Record<Locale, ResetPasswordMessages> = {
   },
   en: {
     required: "Please fill in all required fields",
-    passwordTooShort: "Password must be at least 6 characters",
+    passwordTooShort: "Password must be at least 8 characters",
     invalid: "This reset password link is invalid or no longer available.",
     expired: "This reset password link has expired. Please request a new one.",
     success: "Your password has been updated. Please sign in again.",
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: messages.required }, { status: 400 });
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       return NextResponse.json({ error: messages.passwordTooShort }, { status: 400 });
     }
 

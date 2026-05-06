@@ -21,14 +21,17 @@ export default async function ResetPasswordPage({ params }: Props) {
   const expiredToken = !invalidToken && isPasswordResetTokenExpired(resetToken.expiresAt);
 
   return (
-    <main className="min-h-screen overflow-hidden px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-6">
+    <main className="relative min-h-screen overflow-hidden px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-6" style={{ background: "var(--background)" }}>
+      {/* Spotlight glow backdrop */}
+      <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 60% 50% at 50% 0%, rgba(0, 7, 205, 0.08), transparent)" }} />
+
       <div className="flex justify-end pb-3 sm:pb-4">
         <LanguageSwitcher
           locale={validLocale}
           labels={{ th: messages.common.thai, en: messages.common.english }}
         />
       </div>
-      <div className="bg-white flex min-h-[calc(100vh-5.25rem)] items-stretch rounded-[32px] border border-slate-200 px-3 py-3 shadow-slate-200/50 sm:rounded-[40px] sm:px-5 sm:py-5 lg:min-h-[calc(100vh-6rem)] lg:px-6 lg:py-6">
+      <div className="bg-[var(--surface)] flex min-h-[calc(100vh-5.25rem)] items-stretch rounded-[32px] border px-3 py-3 shadow-slate-200/50 sm:rounded-[40px] sm:px-5 sm:py-5 lg:min-h-[calc(100vh-6rem)] lg:px-6 lg:py-6" style={{ borderColor: "var(--border)" }}>
         <ResetPasswordForm
           locale={validLocale}
           token={token}

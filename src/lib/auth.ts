@@ -4,6 +4,8 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import prisma from "@/lib/db";
 import bcrypt from "bcryptjs";
 
+const isProduction = process.env.NODE_ENV === "production";
+
 // --- Sign-in attempt rate limiter (in-memory, replace with Redis in production) ---
 const signInAttempts = new Map<string, { count: number; resetAt: number }>();
 const SIGNIN_RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
@@ -37,12 +39,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   cookies: {
     sessionToken: {
-      name: "__Secure-authjs.session-token",
+      name: isProduction ? "__Secure-authjs.session-token" : "authjs.session-token",
       options: {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: true,
+        secure: isProduction,
       },
     },
   },

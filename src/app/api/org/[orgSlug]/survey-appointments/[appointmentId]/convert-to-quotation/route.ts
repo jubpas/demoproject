@@ -42,11 +42,23 @@ export async function POST(_request: Request, { params }: Props) {
       include: {
         customer: true,
         project: true,
+        _count: {
+          select: { quotations: true },
+        },
       },
     });
 
     if (!appointment) {
       return NextResponse.json({ error: "Appointment not found" }, { status: 404 });
+    }
+
+    // Guard: prevent converting the same survey appointment twice
+    const quotationsCount = appointment._count?.quotations ?? 0;
+    if (quotationsCount > 0) {
+      return NextResponse.json(
+        { error: "This survey appointment has already been converted to a quotation" },
+        { status: 400 }
+      );
     }
 
     const quotationNumber = await createQuotationNumber(membership.organizationId);

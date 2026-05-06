@@ -4,6 +4,7 @@ import { DataPanel } from "@/components/dashboard/data-panel";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { StatusBadge } from "@/components/dashboard/status-badge";
+import RecentActivity from "@/components/dashboard/recent-activity";
 import { getMessages } from "@/lib/messages";
 import { requireLocale, requireOrganizationAccess } from "@/lib/app-context";
 
@@ -18,7 +19,32 @@ export default async function DashboardPage({ params }: Props) {
   const messages = getMessages(validLocale);
 
   const today = new Date();
-  const [projectCount, customerCount, totals, recentTransactions, openTaskCount, overdueTaskCount, upcomingAppointments, recentTasks, projectHealthRows, recentAuditLogs] = await Promise.all([
+  const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59, 999);
+
+  const [
+    projectCount,
+    customerCount,
+    totals,
+    recentTransactions,
+    openTaskCount,
+    overdueTaskCount,
+    upcomingAppointments,
+    recentTasks,
+    projectHealthRows,
+    recentAuditLogs,
+    // This month data
+    thisMonthIncome,
+    thisMonthExpense,
+    thisMonthProjects,
+    thisMonthCustomers,
+    // Last month data
+    lastMonthIncome,
+    lastMonthExpense,
+    lastMonthProjects,
+    lastMonthCustomers,
+  ] = await Promise.all([
     prisma.project.count({ where: { organizationId: organization.id } }),
     prisma.customer.count({ where: { organizationId: organization.id } }),
     prisma.transaction.groupBy({
@@ -83,13 +109,83 @@ export default async function DashboardPage({ params }: Props) {
     prisma.auditLog.findMany({
       where: { organizationId: organization.id },
       include: {
-        actor: { select: { name: true, email: true } },
-        project: { select: { name: true } },
+        actor: { select: { id: true, name: true, email: true } },
+        project: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
+    // This month income
+    prisma.transaction.aggregate({
+      where: {
+        organizationId: organization.id,
+        type: "INCOME",
+        transactionDate: { gte: thisMonthStart },
+      },
+      _sum: { amountInCents: true },
+    }),
+    // This month expense
+    prisma.transaction.aggregate({
+      where: {
+        organizationId: organization.id,
+        type: "EXPENSE",
+        transactionDate: { gte: thisMonthStart },
+      },
+      _sum: { amountInCents: true },
+    }),
+    // This month projects
+    prisma.project.count({
+      where: {
+        organizationId: organization.id,
+        createdAt: { gte: thisMonthStart },
+      },
+    }),
+    // This month customers
+    prisma.customer.count({
+      where: {
+        organizationId: organization.id,
+        createdAt: { gte: thisMonthStart },
+      },
+    }),
+    // Last month income
+    prisma.transaction.aggregate({
+      where: {
+        organizationId: organization.id,
+        type: "INCOME",
+        transactionDate: { gte: lastMonthStart, lte: lastMonthEnd },
+      },
+      _sum: { amountInCents: true },
+    }),
+    // Last month expense
+    prisma.transaction.aggregate({
+      where: {
+        organizationId: organization.id,
+        type: "EXPENSE",
+        transactionDate: { gte: lastMonthStart, lte: lastMonthEnd },
+      },
+      _sum: { amountInCents: true },
+    }),
+    // Last month projects
+    prisma.project.count({
+      where: {
+        organizationId: organization.id,
+        createdAt: { gte: lastMonthStart, lte: lastMonthEnd },
+      },
+    }),
+    // Last month customers
+    prisma.customer.count({
+      where: {
+        organizationId: organization.id,
+        createdAt: { gte: lastMonthStart, lte: lastMonthEnd },
+      },
+    }),
   ]);
+
+  // Serialize audit logs for client component (Date → ISO string)
+  const serializedAuditLogs = recentAuditLogs.map((log) => ({
+    ...log,
+    createdAt: log.createdAt.toISOString(),
+  }));
 
   const totalIncome = totals.find((item) => item.type === "INCOME")?._sum.amountInCents ?? 0;
   const totalExpense = totals.find((item) => item.type === "EXPENSE")?._sum.amountInCents ?? 0;
@@ -99,11 +195,60 @@ export default async function DashboardPage({ params }: Props) {
     maximumFractionDigits: 2,
   });
 
-  const stats = [
-    { label: messages.dashboard.totalProjects, value: projectCount.toString(), tone: "blue" as const },
-    { label: messages.dashboard.totalCustomers, value: customerCount.toString(), tone: "slate" as const },
-    { label: messages.dashboard.totalIncome, value: moneyFormatter.format(totalIncome / 100), tone: "green" as const },
-    { label: messages.dashboard.totalExpense, value: moneyFormatter.format(totalExpense / 100), tone: "red" as const },
+  // Helper to calculate percentage change
+  const calcTrend = (current: number, previous: number): { percentage: string; direction: "up" | "down" | "same"; trend: string } => {
+    if (previous === 0 && current === 0) return { percentage: "0%", direction: "same", trend: "0%" };
+    if (previous === 0) return { percentage: "+100%", direction: "up", trend: "↑ +100%" };
+    const change = ((current - previous) / Math.abs(previous)) * 100;
+    const rounded = Math.round(change * 10) / 10;
+    const sign = rounded > 0 ? "+" : "";
+    const direction = rounded > 0 ? "up" : rounded < 0 ? "down" : "same";
+    return { percentage: `${sign}${rounded}%`, direction, trend: `${rounded > 0 ? "↑" : rounded < 0 ? "↓" : ""} ${sign}${rounded}%` };
+  };
+
+  // Calculate trends for this month vs last month
+  const incomeTrend = calcTrend(thisMonthIncome._sum.amountInCents ?? 0, lastMonthIncome._sum.amountInCents ?? 0);
+  const expenseTrend = calcTrend(thisMonthExpense._sum.amountInCents ?? 0, lastMonthExpense._sum.amountInCents ?? 0);
+  const projectTrend = calcTrend(thisMonthProjects, lastMonthProjects);
+  const customerTrend = calcTrend(thisMonthCustomers, lastMonthCustomers);
+
+  type StatItem = {
+    label: string;
+    value: string;
+    tone: "blue" | "green" | "red" | "slate";
+    trend?: string;
+    trendTone?: "good" | "bad";
+  };
+
+  const stats: StatItem[] = [
+    {
+      label: messages.dashboard.totalProjects,
+      value: projectCount.toString(),
+      tone: "blue" as const,
+      trend: projectTrend.trend,
+      trendTone: projectTrend.direction === "up" ? "good" : projectTrend.direction === "down" ? "bad" : undefined,
+    },
+    {
+      label: messages.dashboard.totalCustomers,
+      value: customerCount.toString(),
+      tone: "slate" as const,
+      trend: customerTrend.trend,
+      trendTone: customerTrend.direction === "up" ? "good" : customerTrend.direction === "down" ? "bad" : undefined,
+    },
+    {
+      label: messages.dashboard.totalIncome,
+      value: moneyFormatter.format(totalIncome / 100),
+      tone: "green" as const,
+      trend: incomeTrend.trend,
+      trendTone: incomeTrend.direction === "up" ? "good" : incomeTrend.direction === "down" ? "bad" : undefined,
+    },
+    {
+      label: messages.dashboard.totalExpense,
+      value: moneyFormatter.format(totalExpense / 100),
+      tone: "red" as const,
+      trend: expenseTrend.trend,
+      trendTone: expenseTrend.direction === "up" ? "bad" : expenseTrend.direction === "down" ? "good" : undefined,
+    },
   ];
   const activeProjectCount = projectHealthRows.filter((project) => project.status === "ACTIVE").length;
   const completedProjectCount = projectHealthRows.filter((project) => project.status === "COMPLETED").length;
@@ -116,7 +261,10 @@ export default async function DashboardPage({ params }: Props) {
     const planned = project.budgetLines.reduce((sum, line) => sum + line.plannedAmountInCents, 0);
     const income = project.transactions.filter((transaction) => transaction.type === "INCOME").reduce((sum, transaction) => sum + transaction.amountInCents, 0);
     const expense = project.transactions.filter((transaction) => transaction.type === "EXPENSE").reduce((sum, transaction) => sum + transaction.amountInCents, 0);
-    return { id: project.id, name: project.name, planned, income, expense, net: income - expense };
+    const percentage = planned > 0 ? (expense / planned) * 100 : 0;
+    const status: "healthy" | "warning" | "overBudget" =
+      percentage >= 100 ? "overBudget" : percentage >= 80 ? "warning" : "healthy";
+    return { id: project.id, name: project.name, planned, income, expense, net: income - expense, percentage, status };
   });
 
   return (
@@ -151,7 +299,7 @@ export default async function DashboardPage({ params }: Props) {
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {stats.map((item) => (
-          <MetricCard key={item.label} label={item.label} value={item.value} tone={item.tone} />
+          <MetricCard key={item.label} label={item.label} value={item.value} tone={item.tone} trend={item.trend} trendTone={item.trendTone} />
         ))}
       </section>
 
@@ -221,39 +369,45 @@ export default async function DashboardPage({ params }: Props) {
             <p className="text-sm text-slate-500">{messages.dashboard.noProjects}</p>
           ) : (
             <div className="space-y-3">
-              {projectHealthPreview.map((project) => (
-                <Link key={project.id} href={`/${validLocale}/org/${orgSlug}/projects/${project.id}`} className="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition hover:border-blue-200 hover:bg-blue-50">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-slate-950">{project.name}</p>
-                      <p className="mt-1 text-xs text-slate-500">{messages.dashboard.netSnapshot}: {moneyFormatter.format(project.net / 100)}</p>
+              {projectHealthPreview.map((project) => {
+                const pct = Math.min(project.percentage, 100);
+                const barColor =
+                  project.status === "overBudget" ? "bg-red-500" :
+                  project.status === "warning" ? "bg-amber-400" : "bg-emerald-500";
+                const labelColor =
+                  project.status === "overBudget" ? "text-red-700" :
+                  project.status === "warning" ? "text-amber-600" : "text-emerald-700";
+                const statusLabel =
+                  project.status === "overBudget" ? messages.reports.overBudget :
+                  project.status === "warning" ? messages.reports.warning : messages.reports.healthy;
+                return (
+                  <Link key={project.id} href={`/${validLocale}/org/${orgSlug}/projects/${project.id}`} className="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition hover:border-blue-200 hover:bg-blue-50">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-slate-950">{project.name}</p>
+                        <p className="mt-1 text-xs text-slate-500">{messages.dashboard.netSnapshot}: {moneyFormatter.format(project.net / 100)}</p>
+                        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                          <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-sm font-semibold ${labelColor}`}>{project.planned > 0 ? `${project.percentage.toFixed(0)}%` : "0%"}</p>
+                        <p className={`mt-0.5 text-[11px] font-medium ${labelColor}`}>{statusLabel}</p>
+                      </div>
                     </div>
-                    <p className={project.expense > project.planned && project.planned > 0 ? "text-red-700" : "text-emerald-700"}>{project.planned > 0 ? `${((project.expense / project.planned) * 100).toFixed(0)}%` : "0%"}</p>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           )}
         </DataPanel>
 
         <DataPanel title={messages.dashboard.recentActivity} description={messages.dashboard.recentActivityDescription}>
-          {recentAuditLogs.length === 0 ? (
-            <p className="text-sm text-slate-500">{messages.dashboard.noRecentActivity}</p>
-          ) : (
-            <div className="space-y-3">
-              {recentAuditLogs.map((log) => (
-                <div key={log.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-slate-950">{log.summary}</p>
-                      <p className="mt-1 text-xs text-slate-500">{log.actor.name || log.actor.email || messages.common.noData} · {log.project?.name || log.entityType}</p>
-                    </div>
-                    <StatusBadge label={log.action} tone={log.action === "DELETE" ? "red" : log.action === "UPDATE" ? "amber" : "green"} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <RecentActivity
+            initialLogs={serializedAuditLogs}
+            orgSlug={orgSlug}
+            noData={messages.dashboard.noRecentActivity}
+          />
         </DataPanel>
 
         <DataPanel title={messages.dashboard.workloadTitle} description={messages.dashboard.workloadDescription}>

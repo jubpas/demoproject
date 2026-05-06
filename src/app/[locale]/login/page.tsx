@@ -15,7 +15,10 @@ export default async function LoginPage({ params, searchParams }: Props) {
   const messages = getMessages(validLocale);
 
   return (
-    <main className="min-h-screen overflow-hidden px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-6">
+    <main className="relative min-h-screen overflow-hidden px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-6" style={{ background: "var(--background)" }}>
+      {/* Spotlight glow backdrop */}
+      <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 60% 50% at 50% 0%, rgba(0, 7, 205, 0.08), transparent)" }} />
+
       <div className="flex justify-end pb-3 sm:pb-4">
         <LanguageSwitcher
           locale={validLocale}

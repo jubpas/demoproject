@@ -9,7 +9,7 @@ type Props = {
 
 export function PageHeader({ eyebrow, title, description, actions }: Props) {
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-8 lg:flex-row lg:items-start lg:justify-between">
+    <div className="flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-8 lg:flex-row lg:items-start lg:justify-between">
       <div className="space-y-3">
         {eyebrow ? (
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--primary)]">{eyebrow}</p>

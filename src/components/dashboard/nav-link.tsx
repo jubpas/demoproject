@@ -17,7 +17,7 @@ export function NavLink({ href, label }: Props) {
       href={href}
       className={`flex items-center rounded-md px-4 py-3 text-sm font-medium transition-colors ${
         active
-          ? "bg-[var(--primary)] text-[var(--foreground)]"
+          ? "bg-[var(--primary)] text-[var(--on-primary)]"
           : "text-[var(--muted)] hover:bg-[var(--surface-elevated)] hover:text-[var(--foreground)]"
       }`}
     >

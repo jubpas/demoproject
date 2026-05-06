@@ -54,6 +54,17 @@ export async function POST(_request: Request, { params }: Props) {
       return NextResponse.json({ error: "Quotation not found" }, { status: 404 });
     }
 
+    // Guard: ensure quotation status allows conversion
+    // Only DRAFT and SENT quotations can be converted
+    if (quotation.status !== "DRAFT" && quotation.status !== "SENT") {
+      return NextResponse.json(
+        {
+          error: `Cannot convert quotation with status "${quotation.status}". Only DRAFT and SENT quotations can be converted.`,
+        },
+        { status: 400 }
+      );
+    }
+
     if (quotation.projectId) {
       return NextResponse.json({ success: true, projectId: quotation.projectId, existing: true });
     }

@@ -9,6 +9,7 @@ import { DataPanel } from "@/components/dashboard/data-panel";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { StatusBadge } from "@/components/dashboard/status-badge";
+import { downloadCSV } from "@/lib/csv-export";
 
 type ProjectOption = { id: string; name: string };
 type BudgetCategoryOption = { id: string; name: string };
@@ -419,6 +420,23 @@ export function TransactionManager({ locale, orgSlug, transactions, projects, bu
     }
   }
 
+  const handleExport = () => {
+    const columns = [
+      { header: "Date", accessor: (t: TransactionItem) => t.transactionDate },
+      { header: "Type", accessor: (t: TransactionItem) => t.type },
+      { header: "Category", accessor: (t: TransactionItem) => t.category },
+      { header: "Amount", accessor: (t: TransactionItem) => t.amountInCents / 100 },
+      { header: "Payment Status", accessor: (t: TransactionItem) => t.paymentStatus },
+      { header: "Project", accessor: (t: TransactionItem) => t.projectName ?? "" },
+      { header: "Vendor", accessor: (t: TransactionItem) => t.vendorName ?? "" },
+      { header: "Reference", accessor: (t: TransactionItem) => t.referenceNumber ?? "" },
+      { header: "Description", accessor: (t: TransactionItem) => t.description ?? "" },
+    ];
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const filename = `${orgSlug}-transactions-${dateStr}.csv`;
+    downloadCSV(filename, filteredTransactions, columns);
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader title={copy.transactions.title} description={copy.transactions.subtitle} />
@@ -441,7 +459,18 @@ export function TransactionManager({ locale, orgSlug, transactions, projects, bu
           </div>
         </DataPanel>
 
-        <DataPanel title={copy.transactions.listTitle} actions={<span className="text-xs font-medium text-slate-500">{filteredTransactions.length}/{transactions.length}</span>}>
+        <DataPanel title={copy.transactions.listTitle} actions={
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-slate-500">{filteredTransactions.length}/{transactions.length}</span>
+            <button
+              type="button"
+              onClick={handleExport}
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              Export CSV
+            </button>
+          </div>
+        }>
           <div className="mb-4 grid gap-3 lg:grid-cols-[1.2fr_0.7fr_0.8fr_0.8fr_0.8fr_auto]">
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.transactions.searchTransactionsPlaceholder} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" />
             <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as TransactionType | "ALL")} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">

@@ -18,9 +18,9 @@ type ForgotPasswordMessages = {
 
 const messagesByLocale: Record<Locale, ForgotPasswordMessages> = {
   th: {
-    invalidEmail: "กรุณากรอกอีเมลให�ถูกต้อง",
-    success: "หากอีเมลน�มีอย�ในระบบ เราจะส่งลิงก์รีเซตรหัสผ่านให้",
-    tooManyRequests: "คุณส่งคำขอมากเกิน ไปกรุณารอสักครู่แล้วลองใหม่",
+    invalidEmail: "กรุณากรอกอีเมลให้ถูกต้อง",
+    success: "หากอีเมลนี้มีอยู่ในระบบ เราจะส่งลิงก์รีเซ็ตรหัสผ่านให้",
+    tooManyRequests: "คุณส่งคำขอมากเกินไป กรุณารอสักครู่แล้วลองใหม่",
     generic: "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
   },
   en: {

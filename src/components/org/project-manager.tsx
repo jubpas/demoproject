@@ -8,6 +8,7 @@ import type { Locale } from "@/lib/locales";
 import { DataPanel } from "@/components/dashboard/data-panel";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { StatusBadge } from "@/components/dashboard/status-badge";
+import { downloadCSV } from "@/lib/csv-export";
 
 type CustomerOption = { id: string; name: string };
 
@@ -203,6 +204,22 @@ export function ProjectManager({ locale, orgSlug, projects, customers, canManage
     });
   }, [projects, query, statusFilter, customerFilter]);
 
+  const handleExport = () => {
+    const columns = [
+      { header: "Name", accessor: (p: ProjectItem) => p.name },
+      { header: "Code", accessor: (p: ProjectItem) => p.code ?? "" },
+      { header: "Customer", accessor: (p: ProjectItem) => p.customerName ?? "" },
+      { header: "Status", accessor: (p: ProjectItem) => p.status },
+      { header: "Budget", accessor: (p: ProjectItem) => (p.budgetInCents ?? 0) / 100 },
+      { header: "Start Date", accessor: (p: ProjectItem) => p.startDate ?? "" },
+      { header: "End Date", accessor: (p: ProjectItem) => p.endDate ?? "" },
+      { header: "Location", accessor: (p: ProjectItem) => p.location ?? "" },
+    ];
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const filename = `${orgSlug}-projects-${dateStr}.csv`;
+    downloadCSV(filename, filteredProjects, columns);
+  };
+
   function clearFilters() {
     setQuery("");
     setStatusFilter("ALL");
@@ -313,7 +330,18 @@ export function ProjectManager({ locale, orgSlug, projects, customers, canManage
           </div>
         </DataPanel>
 
-        <DataPanel title={copy.projects.listTitle} actions={<span className="text-xs font-medium text-slate-500">{filteredProjects.length}/{projects.length}</span>}>
+        <DataPanel title={copy.projects.listTitle} actions={
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-slate-500">{filteredProjects.length}/{projects.length}</span>
+            <button
+              type="button"
+              onClick={handleExport}
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              Export CSV
+            </button>
+          </div>
+        }>
           <div className="mb-4 grid gap-3 lg:grid-cols-[1.2fr_0.8fr_0.8fr_auto]">
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.projects.searchProjectsPlaceholder} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100" />
             <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as ProjectStatus | "ALL")} className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">

@@ -19,6 +19,8 @@ const pwdTokenUpdateMany = vi.fn().mockResolvedValue({ count: 0 });
 const pwdTokenCreate = vi.fn().mockResolvedValue({ id: "token-1", tokenHash: "abc", userId: "1", expiresAt: new Date() });
 const pwdTokenFindUnique = vi.fn();
 const pwdTokenUpdate = vi.fn().mockResolvedValue({});
+const pwdTokenDeleteMany = vi.fn().mockResolvedValue({ count: 0 });
+const pwdTokenFindFirst = vi.fn();
 const $transaction = vi.fn(async () => {});
 
 vi.mock("@/lib/db", () => ({
@@ -29,6 +31,12 @@ vi.mock("@/lib/db", () => ({
       create: pwdTokenCreate,
       findUnique: pwdTokenFindUnique,
       update: pwdTokenUpdate,
+      // Mock for rate limit check in checkEmailRateLimit()
+      findMany: vi.fn().mockResolvedValue([]),
+      // Mock for issuePasswordResetToken (cleanup old tokens)
+      deleteMany: pwdTokenDeleteMany,
+      // Mock for getValidPasswordResetToken
+      findFirst: pwdTokenFindFirst,
     },
     $transaction,
   },
@@ -207,17 +215,18 @@ describe("API: POST /api/reset-password", () => {
 
     expect(response.status).toBe(400);
     const body = await response.json();
-    expect(body.error).toBe("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
+    // Password policy now requires minimum 8 characters
+    expect(body.error).toBe("รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร");
   });
 
   it("returns 400 when token is invalid or already used", async () => {
-    pwdTokenFindUnique.mockResolvedValue(null);
+    pwdTokenFindFirst.mockResolvedValue(null);
     const { POST } = await import("@/app/api/reset-password/route");
 
     const response = await POST(new Request("http://localhost:3000/api/reset-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: "invalid-token", password: "123456" }),
+      body: JSON.stringify({ token: "invalid-token", password: "12345678" }),
     }));
 
     expect(response.status).toBe(400);
@@ -226,19 +235,20 @@ describe("API: POST /api/reset-password", () => {
   });
 
   it("returns 410 when token is expired", async () => {
-    pwdTokenFindUnique.mockResolvedValue({
+    pwdTokenFindFirst.mockResolvedValue({
       id: "1",
       tokenHash: "abc",
       userId: "1",
       expiresAt: new Date(Date.now() - 60 * 60 * 1000),
       usedAt: null,
+      user: { id: "1", email: "user@example.com" },
     });
     const { POST } = await import("@/app/api/reset-password/route");
 
     const response = await POST(new Request("http://localhost:3000/api/reset-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: "expired-token", password: "123456" }),
+      body: JSON.stringify({ token: "expired-token", password: "12345678" }),
     }));
 
     expect(response.status).toBe(410);

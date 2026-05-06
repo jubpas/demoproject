@@ -15,11 +15,12 @@ export default async function InvitePage({ params }: Props) {
 
   const callbackUrl = `/${validLocale}/invite/${token}`;
 
-  const roleLabels = {
+  const roleLabels: Record<string, string> = {
     OWNER: messages.members.roleOwner,
     ADMIN: messages.members.roleAdmin,
     MANAGER: messages.members.roleManager,
     STAFF: messages.members.roleStaff,
+    SUBCONTRACTOR: messages.members.roleStaff,
   };
 
   let state: "READY" | "LOGIN_REQUIRED" | "EMAIL_MISMATCH" | "EXPIRED" | "UNAVAILABLE" = "UNAVAILABLE";

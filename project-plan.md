@@ -80,7 +80,27 @@
 /en/org/[orgSlug]/reports/approvals
 
 /th/org/[orgSlug]/settings
+/th/org/[orgSlug]/worker-teams
+/th/org/[orgSlug]/worker-teams/[teamId]
+/th/org/[orgSlug]/work-logs
+
+/en/org/[orgSlug]/dashboard
+/en/org/[orgSlug]/customers
+/en/org/[orgSlug]/projects
+/en/org/[orgSlug]/projects/[projectId]
+/en/org/[orgSlug]/projects/[projectId]/tasks
+/en/org/[orgSlug]/projects/[projectId]/schedule
+/en/org/[orgSlug]/transactions
+/en/org/[orgSlug]/survey-appointments
+/en/org/[orgSlug]/quotations
+/en/org/[orgSlug]/quotations/[quotationId]
+/en/org/[orgSlug]/reports
+/en/org/[orgSlug]/reports/audit
+/en/org/[orgSlug]/reports/approvals
 /en/org/[orgSlug]/settings
+/en/org/[orgSlug]/worker-teams
+/en/org/[orgSlug]/worker-teams/[teamId]
+/en/org/[orgSlug]/work-logs
 ```
 
 แนวทาง:
@@ -647,6 +667,9 @@ Current implemented routes:
 /th/org/[orgSlug]/reports/audit
 /th/org/[orgSlug]/reports/approvals
 /th/org/[orgSlug]/settings
+/th/org/[orgSlug]/worker-teams
+/th/org/[orgSlug]/worker-teams/[teamId]
+/th/org/[orgSlug]/work-logs
 
 /en/org/[orgSlug]/dashboard
 /en/org/[orgSlug]/customers
@@ -662,6 +685,9 @@ Current implemented routes:
 /en/org/[orgSlug]/reports/audit
 /en/org/[orgSlug]/reports/approvals
 /en/org/[orgSlug]/settings
+/en/org/[orgSlug]/worker-teams
+/en/org/[orgSlug]/worker-teams/[teamId]
+/en/org/[orgSlug]/work-logs
 ```
 
 Suggested next phase:
@@ -716,3 +742,18 @@ Known mismatches ที่ต้องเก็บในรอบถัดไป
 - route plan บางส่วนยังเป็น `/new` ตามแผนเดิม แต่ implementation จริงใช้หน้า manager page เป็นหลัก
 - i18n plan เก่าเคยอ้าง `next-intl` แต่ implementation ปัจจุบันใช้ message modules แบบ `.ts`
 - deployment plan เดิมยังมอง SQLite แบบ local-first จึงต้องมี hosted database plan แยกสำหรับ environment ทดสอบจริง
+### 2026-05-06
+
+Completed:
+
+- เพิ่มระบบวางแผนกำลังคนในหน้า `/[locale]/org/[orgSlug]/worker-teams`
+- เพิ่มค่าแรงรายวัน/รายเดือนให้สมาชิกทีมคนงาน และใช้ค่าแรงนั้นช่วยตั้งต้นแผนกำลังคน
+- เพิ่ม `WorkerAssignment` สำหรับผูกทีม/คนงานกับ project, task, ช่วงวัน, จำนวนวันตามแผน, ค่าแรง, ต้นทุนประมาณการ, และสถานะ
+- เพิ่ม API `/api/org/[orgSlug]/worker-assignments` สำหรับสร้างแผนและปรับสถานะ โดยตรวจ membership/role ฝั่ง server
+- ปรับข้อความ worker team ภาษาไทย/อังกฤษเฉพาะส่วนที่ใช้งานในหน้าให้อ่านได้จริงขึ้น
+- รัน `prisma generate`, `prisma db push`, lint เฉพาะไฟล์ที่แก้ และ `npm run build` ผ่าน
+
+Risks / follow-up:
+
+- `npm run lint` ทั้ง repo ยังไม่ผ่านจาก lint errors เดิมนอก scope เช่น `analyze-task.js`, `check-db.cjs`, และ `src/components/org/global-search.tsx`
+- ค่าแรงรายเดือนคำนวณต้นทุนประมาณการแบบ prorate 30 วัน ซึ่งเป็น assumption สำหรับ MVP
