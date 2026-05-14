@@ -9,7 +9,7 @@ export function PrintQuotationButton({ label }: Props) {
     <button
       type="button"
       onClick={() => window.print()}
-      className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700"
+      className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
     >
       {label}
     </button>

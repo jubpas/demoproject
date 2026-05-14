@@ -1,0 +1,19 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Railway
+        uses: febhri/deploy-to-railway@v1.3
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          railway_service: ${{ secrets.RAILWAY_SERVICE_ID }}

@@ -106,6 +106,30 @@ type Props = {
       rejectLoading: string;
       approveConfirm: string;
       rejectConfirm: string;
+      step1Title: string;
+      step2Title: string;
+      stepNext: string;
+      stepBack: string;
+      batchTitle: string;
+      batchStart: string;
+      batchEnd: string;
+      batchAdd: string;
+      batchClear: string;
+      batchSuccess: string;
+      batchDateRange: string;
+      batchWorker: string;
+      batchProject: string;
+      batchNotes: string;
+      batchCompletion: string;
+      batchCheckIn: string;
+      batchCheckOut: string;
+      batchCancel: string;
+      batchConfirm: string;
+      batchRequiredDates: string;
+      batchRequiredTeam: string;
+      batchRequiredWorker: string;
+      batchProcessing: string;
+      batchComplete: string;
     };
   };
 };
@@ -159,6 +183,7 @@ export function WorkLogManager({
 }: Props) {
   const router = useRouter();
   const [form, setForm] = useState<WorkLogForm>(emptyForm);
+  const [formStep, setFormStep] = useState<1 | 2>(1);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingForm, setEditingForm] = useState<WorkLogForm>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
@@ -171,6 +196,18 @@ export function WorkLogManager({
   const [projectFilter, setProjectFilter] = useState("ALL");
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
+  const [showBatch, setShowBatch] = useState(false);
+  const [batchForm, setBatchForm] = useState({
+    startDate: "",
+    endDate: "",
+    workerTeamId: "",
+    workerUserId: "",
+    projectId: "",
+    checkIn: "",
+    checkOut: "",
+    notes: "",
+    completionPercent: "0",
+  });
 
   const filteredWorkLogs = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -279,6 +316,82 @@ export function WorkLogManager({
 
       setForm(emptyForm);
       setSuccess(copy.workLog.createdSuccess);
+      startTransition(() => router.refresh());
+    } catch {
+      setError(copy.common.unauthorized);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function batchSubmitWorkLog() {
+    if (!canManage) {
+      setError(copy.common.unauthorized);
+      return;
+    }
+
+    if (!batchForm.startDate || !batchForm.endDate) {
+      setError(copy.workLog.batchRequiredDates);
+      return;
+    }
+    if (!batchForm.workerTeamId) {
+      setError(copy.workLog.batchRequiredTeam);
+      return;
+    }
+    if (!batchForm.workerUserId) {
+      setError(copy.workLog.batchRequiredWorker);
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+    setSubmitting(true);
+
+    try {
+      const start = new Date(batchForm.startDate);
+      const end = new Date(batchForm.endDate);
+      const logsToCreate: Array<Record<string, unknown>> = [];
+      const current = new Date(start);
+
+      while (current <= end) {
+        logsToCreate.push({
+          date: current.toISOString().slice(0, 10),
+          projectId: batchForm.projectId || null,
+          workerTeamId: batchForm.workerTeamId,
+          workerUserId: batchForm.workerUserId,
+          checkIn: batchForm.checkIn || null,
+          checkOut: batchForm.checkOut || null,
+          notes: batchForm.notes || null,
+          completionPercent: Number(batchForm.completionPercent) || 0,
+        });
+        current.setDate(current.getDate() + 1);
+      }
+
+      const response = await fetch(`/api/org/${orgSlug}/work-logs/batch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ logs: logsToCreate }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error ?? copy.common.unauthorized);
+        return;
+      }
+
+      setBatchForm({
+        startDate: "",
+        endDate: "",
+        workerTeamId: "",
+        workerUserId: "",
+        projectId: "",
+        checkIn: "",
+        checkOut: "",
+        notes: "",
+        completionPercent: "0",
+      });
+      setShowBatch(false);
+      setSuccess(copy.workLog.batchSuccess);
       startTransition(() => router.refresh());
     } catch {
       setError(copy.common.unauthorized);
@@ -472,106 +585,351 @@ export function WorkLogManager({
       {/* Create Form */}
       {canManage ? (
         <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
-          <h3 className="text-lg font-semibold text-slate-900">{copy.workLog.createTitle}</h3>
-          <div className="grid gap-4 md:grid-cols-3">
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-slate-700">{copy.workLog.date}</span>
-              <input
-                type="date"
-                value={form.date}
-                onChange={(e) => updateForm("date", e.target.value)}
-                className={inputClassName}
-              />
-            </label>
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-slate-700">{copy.workLog.workerTeam}</span>
-              <select
-                value={form.workerTeamId}
-                onChange={(e) => updateForm("workerTeamId", e.target.value)}
-                className={inputClassName}
-              >
-                <option value="">{copy.workLog.noTeam}</option>
-                {teams.map((team) => (
-                  <option key={team.id} value={team.id}>{team.name}</option>
-                ))}
-              </select>
-            </label>
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-slate-700">{copy.workLog.worker}</span>
-              <select
-                value={form.workerUserId}
-                onChange={(e) => updateForm("workerUserId", e.target.value)}
-                className={inputClassName}
-              >
-                <option value="">{copy.workLog.noTeam}</option>
-                {workers.map((worker) => (
-                  <option key={worker.userId} value={worker.userId}>
-                    {worker.name || worker.email}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-slate-700">{copy.workLog.project}</span>
-              <select
-                value={form.projectId}
-                onChange={(e) => updateForm("projectId", e.target.value)}
-                className={inputClassName}
-              >
-                <option value="">{copy.workLog.noProject}</option>
-                {projects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.code ? `${project.code} - ${project.name}` : project.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-slate-700">{copy.workLog.timeIn}</span>
-              <input
-                type="datetime-local"
-                value={form.checkIn}
-                onChange={(e) => updateForm("checkIn", e.target.value)}
-                className={inputClassName}
-              />
-            </label>
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-slate-700">{copy.workLog.timeOut}</span>
-              <input
-                type="datetime-local"
-                value={form.checkOut}
-                onChange={(e) => updateForm("checkOut", e.target.value)}
-                className={inputClassName}
-              />
-            </label>
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-slate-700">{copy.workLog.completionPercent}</span>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={form.completionPercent}
-                onChange={(e) => updateForm("completionPercent", e.target.value)}
-                className={inputClassName}
-              />
-            </label>
-            <label className="block space-y-2 md:col-span-3">
-              <span className="text-sm font-medium text-slate-700">{copy.workLog.notes}</span>
-              <textarea
-                rows={3}
-                value={form.notes}
-                onChange={(e) => updateForm("notes", e.target.value)}
-                className={inputClassName}
-              />
-            </label>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-slate-900">{copy.workLog.createTitle}</h3>
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-medium ${formStep === 1 ? 'text-blue-600' : 'text-slate-500'}`}>
+                1. {copy.workLog.step1Title}
+              </span>
+              <span className="text-slate-300">→</span>
+              <span className={`text-sm font-medium ${formStep === 2 ? 'text-blue-600' : 'text-slate-500'}`}>
+                2. {copy.workLog.step2Title}
+              </span>
+            </div>
           </div>
-          <button
-            onClick={createWorkLog}
-            disabled={submitting}
-            className="rounded-2xl bg-[#0007cd] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#0007cd]/90 disabled:opacity-50"
-          >
-            {submitting ? copy.workLog.createLoading : copy.workLog.createAction}
-          </button>
+
+          {error ? (
+            <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+          ) : null}
+          {success ? (
+            <div className="rounded-2xl bg-green-50 px-4 py-3 text-sm text-green-700">{success}</div>
+          ) : null}
+
+          {/* Step 1: เลือกทีมและคนงาน */}
+          {formStep === 1 && (
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">{copy.workLog.workerTeam}</span>
+                  <select
+                    value={form.workerTeamId}
+                    onChange={(e) => updateForm("workerTeamId", e.target.value)}
+                    className={inputClassName}
+                  >
+                    <option value="">{copy.workLog.noTeam}</option>
+                    {teams.map((team) => (
+                      <option key={team.id} value={team.id}>{team.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">{copy.workLog.worker}</span>
+                  <select
+                    value={form.workerUserId}
+                    onChange={(e) => updateForm("workerUserId", e.target.value)}
+                    className={inputClassName}
+                    disabled={!form.workerTeamId}
+                  >
+                    <option value="">{copy.workLog.noTeam}</option>
+                    {workers.map((worker) => (
+                      <option key={worker.userId} value={worker.userId}>
+                        {worker.name || worker.email}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setForm(emptyForm);
+                    setFormStep(1);
+                  }}
+                  className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                >
+                  {copy.common.cancel}
+                </button>
+                <button
+                  onClick={() => {
+                    if (!form.workerTeamId || !form.workerUserId) {
+                      setError(copy.workLog.requiredMember);
+                      return;
+                    }
+                    setError("");
+                    setFormStep(2);
+                  }}
+                  className="rounded-2xl bg-[#0007cd] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#0007cd]/90 disabled:opacity-50"
+                >
+                  {copy.workLog.stepNext} →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: กรอกรายละเอียด */}
+          {formStep === 2 && (
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-3">
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">{copy.workLog.date}</span>
+                  <input
+                    type="date"
+                    value={form.date}
+                    onChange={(e) => updateForm("date", e.target.value)}
+                    className={inputClassName}
+                  />
+                </label>
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">{copy.workLog.project}</span>
+                  <select
+                    value={form.projectId}
+                    onChange={(e) => updateForm("projectId", e.target.value)}
+                    className={inputClassName}
+                  >
+                    <option value="">{copy.workLog.noProject}</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.code ? `${project.code} - ${project.name}` : project.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">{copy.workLog.completionPercent}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={form.completionPercent}
+                    onChange={(e) => updateForm("completionPercent", e.target.value)}
+                    className={inputClassName}
+                  />
+                </label>
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">{copy.workLog.timeIn}</span>
+                  <input
+                    type="datetime-local"
+                    value={form.checkIn}
+                    onChange={(e) => updateForm("checkIn", e.target.value)}
+                    className={inputClassName}
+                  />
+                </label>
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">{copy.workLog.timeOut}</span>
+                  <input
+                    type="datetime-local"
+                    value={form.checkOut}
+                    onChange={(e) => updateForm("checkOut", e.target.value)}
+                    className={inputClassName}
+                  />
+                </label>
+                <div />
+                <label className="block space-y-2 md:col-span-3">
+                  <span className="text-sm font-medium text-slate-700">{copy.workLog.notes}</span>
+                  <textarea
+                    rows={3}
+                    value={form.notes}
+                    onChange={(e) => updateForm("notes", e.target.value)}
+                    className={inputClassName}
+                  />
+                </label>
+              </div>
+
+              {/* Summary */}
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <p className="text-sm font-medium text-slate-700">สรุปข้อมูล:</p>
+                <div className="mt-2 grid gap-2 text-sm text-slate-600 md:grid-cols-3">
+                  <p>👤 <span className="font-medium">{copy.workLog.worker}:</span> {workers.find(w => w.userId === form.workerUserId)?.name || '-'}</p>
+                  <p>👷 <span className="font-medium">{copy.workLog.workerTeam}:</span> {teams.find(t => t.id === form.workerTeamId)?.name || '-'}</p>
+                  <p>📅 <span className="font-medium">{copy.workLog.date}:</span> {form.date || '-'}</p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setFormStep(1)}
+                  className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                >
+                  ← {copy.workLog.stepBack}
+                </button>
+                <button
+                  onClick={createWorkLog}
+                  disabled={submitting}
+                  className="rounded-2xl bg-[#0007cd] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#0007cd]/90 disabled:opacity-50"
+                >
+                  {submitting ? copy.workLog.createLoading : copy.workLog.createAction}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {/* Batch Quick-Add Form */}
+      {canManage ? (
+        <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-slate-900">{copy.workLog.batchTitle}</h3>
+            <button
+              onClick={() => setShowBatch(!showBatch)}
+              className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+            >
+              {showBatch ? "ซ่อนฟอร์ม" : "เปิดฟอร์ม"}
+            </button>
+          </div>
+
+          {showBatch && (
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">{copy.workLog.batchDateRange}</span>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={batchForm.startDate}
+                      onChange={(e) => setBatchForm((current) => ({ ...current, startDate: e.target.value }))}
+                      className={inputClassName}
+                    />
+                    <span className="flex items-center text-slate-400">→</span>
+                    <input
+                      type="date"
+                      value={batchForm.endDate}
+                      onChange={(e) => setBatchForm((current) => ({ ...current, endDate: e.target.value }))}
+                      className={inputClassName}
+                    />
+                  </div>
+                </label>
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">{copy.workLog.workerTeam}</span>
+                  <select
+                    value={batchForm.workerTeamId}
+                    onChange={(e) => setBatchForm((current) => ({ ...current, workerTeamId: e.target.value }))}
+                    className={inputClassName}
+                  >
+                    <option value="">{copy.workLog.noTeam}</option>
+                    {teams.map((team) => (
+                      <option key={team.id} value={team.id}>{team.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">{copy.workLog.worker}</span>
+                  <select
+                    value={batchForm.workerUserId}
+                    onChange={(e) => setBatchForm((current) => ({ ...current, workerUserId: e.target.value }))}
+                    className={inputClassName}
+                    disabled={!batchForm.workerTeamId}
+                  >
+                    <option value="">{copy.workLog.noTeam}</option>
+                    {workers.map((worker) => (
+                      <option key={worker.userId} value={worker.userId}>
+                        {worker.name || worker.email}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">{copy.workLog.project}</span>
+                  <select
+                    value={batchForm.projectId}
+                    onChange={(e) => setBatchForm((current) => ({ ...current, projectId: e.target.value }))}
+                    className={inputClassName}
+                  >
+                    <option value="">{copy.workLog.noProject}</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.code ? `${project.code} - ${project.name}` : project.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">{copy.workLog.batchCheckIn}</span>
+                  <input
+                    type="datetime-local"
+                    value={batchForm.checkIn}
+                    onChange={(e) => setBatchForm((current) => ({ ...current, checkIn: e.target.value }))}
+                    className={inputClassName}
+                  />
+                </label>
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">{copy.workLog.batchCheckOut}</span>
+                  <input
+                    type="datetime-local"
+                    value={batchForm.checkOut}
+                    onChange={(e) => setBatchForm((current) => ({ ...current, checkOut: e.target.value }))}
+                    className={inputClassName}
+                  />
+                </label>
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">{copy.workLog.batchCompletion}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={batchForm.completionPercent}
+                    onChange={(e) => setBatchForm((current) => ({ ...current, completionPercent: e.target.value }))}
+                    className={inputClassName}
+                  />
+                </label>
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-slate-700">{copy.workLog.batchNotes}</span>
+                  <textarea
+                    rows={2}
+                    value={batchForm.notes}
+                    onChange={(e) => setBatchForm((current) => ({ ...current, notes: e.target.value }))}
+                    className={inputClassName}
+                    placeholder="หมายเหตุที่จะใส่ในทุกบันทึก"
+                  />
+                </label>
+              </div>
+
+              {/* Batch Summary */}
+              {batchForm.startDate && batchForm.endDate && batchForm.workerTeamId && batchForm.workerUserId && (
+                <div className="rounded-2xl bg-blue-50 p-4">
+                  <p className="text-sm font-medium text-blue-900">สรุป:</p>
+                  <p className="text-sm text-blue-700">
+                    จะสร้างบันทึกจำนวน{" "}
+                    {Math.ceil(
+                      (new Date(batchForm.endDate).getTime() - new Date(batchForm.startDate).getTime()) / (1000 * 60 * 60 * 24) + 1
+                    )}{" "}
+                    รายการ สำหรับ{" "}
+                    {workers.find((w) => w.userId === batchForm.workerUserId)?.name || batchForm.workerUserId}{" "}
+                    ในทีม{" "}
+                    {teams.find((t) => t.id === batchForm.workerTeamId)?.name || batchForm.workerTeamId}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() =>
+                    setBatchForm({
+                      startDate: "",
+                      endDate: "",
+                      workerTeamId: "",
+                      workerUserId: "",
+                      projectId: "",
+                      checkIn: "",
+                      checkOut: "",
+                      notes: "",
+                      completionPercent: "0",
+                    })
+                  }
+                  className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                >
+                  {copy.workLog.batchClear}
+                </button>
+                <button
+                  onClick={batchSubmitWorkLog}
+                  disabled={submitting}
+                  className="rounded-2xl bg-[#0007cd] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#0007cd]/90 disabled:opacity-50"
+                >
+                  {submitting ? copy.workLog.batchProcessing : copy.workLog.batchAdd}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       ) : null}
 

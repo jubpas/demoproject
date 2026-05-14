@@ -52,7 +52,8 @@ export default async function QuotationPreviewPage({ params }: Props) {
   const status = statusMap[quotation.status];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
+      {/* Screen-only navigation breadcrumbs */}
       {quotation.projectId || quotation.customerId || quotation.surveyAppointmentId ? (
         <div className="print:hidden flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
           {quotation.customerId ? (
@@ -75,6 +76,8 @@ export default async function QuotationPreviewPage({ params }: Props) {
           ) : null}
         </div>
       ) : null}
+
+      {/* Screen-only action bar */}
       <div className="print:hidden flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">{messages.quotations.previewTitle}</p>
@@ -95,90 +98,162 @@ export default async function QuotationPreviewPage({ params }: Props) {
         </div>
       </div>
 
-      <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:rounded-none print:border-0 print:shadow-none sm:p-8">
-        <div className="flex flex-col gap-6 border-b border-slate-200 pb-6 sm:flex-row sm:items-start sm:justify-between">
+      {/* Print-ready quotation document - single page A4 */}
+      <article className="print-document rounded-3xl border border-slate-200 bg-white p-3 shadow-sm print:rounded-none print:border-0 print:shadow-none sm:p-4">
+        {/* Document header - organization info */}
+        <div className="flex flex-col gap-1 border-b border-slate-200 pb-1.5 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-blue-600">{messages.common.appName}</p>
-            <h2 className="mt-2 text-3xl font-semibold text-slate-950">{organization.name}</h2>
-            <p className="mt-2 text-sm text-slate-500">{organization.description || quotation.customer.address || quotation.customer.email || quotation.customer.phone || "-"}</p>
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-blue-600">{messages.common.appName}</p>
+            <h2 className="mt-0.5 text-base font-bold text-slate-950">{organization.name}</h2>
+            <p className="mt-0.5 text-[11px] text-slate-500">
+              {organization.description || quotation.customer.address || quotation.customer.email || quotation.customer.phone || "-"}
+            </p>
           </div>
 
-          <div className="space-y-3 text-sm text-slate-600 sm:text-right">
+          <div className="space-y-1 text-[11px] text-slate-600 sm:text-right">
             <div>
-              <p className="font-medium text-slate-950">{messages.quotations.quotationNumber}</p>
-              <p>{quotation.quotationNumber}</p>
+              <p className="font-semibold text-slate-950">{messages.quotations.quotationNumber}</p>
+              <p className="text-sm font-bold text-slate-900 mt-0.5">{quotation.quotationNumber}</p>
             </div>
             <div>
-              <p className="font-medium text-slate-950">{messages.quotations.issueDate}</p>
-              <p>{quotation.issueDate.toISOString().slice(0, 10)}</p>
+              <p className="font-semibold text-slate-950">{messages.quotations.issueDate}</p>
+              <p className="mt-0.5">{quotation.issueDate.toISOString().slice(0, 10)}</p>
             </div>
             <div>
-              <p className="font-medium text-slate-950">{messages.quotations.validUntil}</p>
-              <p>{quotation.validUntil ? quotation.validUntil.toISOString().slice(0, 10) : messages.common.noData}</p>
+              <p className="font-semibold text-slate-950">{messages.quotations.validUntil}</p>
+              <p className="mt-0.5">
+                {quotation.validUntil
+                  ? quotation.validUntil.toISOString().slice(0, 10)
+                  : messages.common.noData}
+              </p>
             </div>
             <div className="print:hidden">
               <StatusBadge label={status.label} tone={status.tone} />
             </div>
+            <div className="print:block hidden">
+              <p className="text-[10px] text-slate-600 font-medium mt-1 uppercase tracking-wider">
+                {status.label}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="mt-6 grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl bg-slate-50 p-4">
-            <p className="text-sm font-medium text-slate-500">{messages.quotations.customer}</p>
-            <p className="mt-2 text-lg font-semibold text-slate-950">{quotation.customer.name}</p>
-            <p className="mt-1 text-sm text-slate-600">{quotation.customer.companyName || quotation.customer.email || quotation.customer.phone || messages.common.noData}</p>
-            <p className="mt-1 text-sm text-slate-600">{quotation.customer.address || messages.common.noData}</p>
-          </div>
-          <div className="rounded-2xl bg-slate-50 p-4">
-            <p className="text-sm font-medium text-slate-500">{messages.quotations.project}</p>
-            <p className="mt-2 text-lg font-semibold text-slate-950">{quotation.project?.name || messages.quotations.noProject}</p>
-            <p className="mt-1 text-sm text-slate-600">{quotation.note || messages.common.noData}</p>
+        {/* Customer and Project info - side by side columns */}
+        <div className="mt-3 border border-slate-200 rounded-lg overflow-hidden">
+          <div className="grid grid-cols-2 divide-x divide-slate-200">
+            <div className="p-2 bg-slate-50">
+              <p className="text-[8px] font-bold uppercase tracking-wider text-slate-500">{messages.quotations.customer}</p>
+              <p className="mt-0.5 text-xs font-bold text-slate-950">{quotation.customer.name}</p>
+              <p className="mt-0.5 text-[10px] text-slate-600">
+                {quotation.customer.companyName || quotation.customer.email || quotation.customer.phone || messages.common.noData}
+              </p>
+              <p className="mt-0.5 text-[10px] text-slate-600">
+                {quotation.customer.address || messages.common.noData}
+              </p>
+            </div>
+            <div className="p-2 bg-slate-50">
+              <p className="text-[8px] font-bold uppercase tracking-wider text-slate-500">{messages.quotations.project}</p>
+              <p className="mt-0.5 text-xs font-bold text-slate-950">
+                {quotation.project?.name || messages.quotations.noProject}
+              </p>
+              <p className="mt-0.5 text-[10px] text-slate-600">
+                {quotation.note || messages.common.noData}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="mt-8 overflow-x-auto">
-          <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
+        {/* Items table */}
+        <div className="mt-3 overflow-x-auto">
+          <table className="min-w-full border-separate border-spacing-0 text-left text-[10px] print:border-collapse print:border-spacing-0">
             <thead>
-              <tr className="bg-slate-50 text-slate-600">
-                <th className="rounded-l-2xl px-4 py-3 font-medium">{messages.quotations.itemDescription}</th>
-                <th className="px-4 py-3 font-medium">{messages.quotations.quantity}</th>
-                <th className="px-4 py-3 font-medium">{messages.quotations.unit}</th>
-                <th className="px-4 py-3 font-medium">{messages.quotations.unitPrice}</th>
-                <th className="rounded-r-2xl px-4 py-3 text-right font-medium">{messages.quotations.lineTotal}</th>
+              <tr className="bg-slate-50 text-slate-600 print:bg-slate-100">
+                <th className="rounded-l-lg px-2 py-1.5 font-semibold text-[9px] uppercase tracking-wider">{messages.quotations.itemDescription}</th>
+                <th className="px-2 py-1.5 font-semibold text-[9px] uppercase tracking-wider text-center">{messages.quotations.quantity}</th>
+                <th className="px-2 py-1.5 font-semibold text-[9px] uppercase tracking-wider text-center">{messages.quotations.unit}</th>
+                <th className="px-2 py-1.5 font-semibold text-[9px] uppercase tracking-wider text-right">{messages.quotations.unitPrice}</th>
+                <th className="rounded-r-lg px-2 py-1.5 font-semibold text-[9px] uppercase tracking-wider text-right">{messages.quotations.lineTotal}</th>
               </tr>
             </thead>
             <tbody>
-              {quotation.items.map((item) => (
-                <tr key={item.id} className="border-b border-slate-100 text-slate-700">
-                  <td className="px-4 py-4 font-medium text-slate-950">{item.description}</td>
-                  <td className="px-4 py-4">{item.quantity}</td>
-                  <td className="px-4 py-4">{item.unit || messages.common.noData}</td>
-                  <td className="px-4 py-4">{formatter.format(item.unitPriceInCents / 100)}</td>
-                  <td className="px-4 py-4 text-right">{formatter.format(item.totalInCents / 100)}</td>
+              {quotation.items.map((item, index) => (
+                <tr
+                  key={item.id}
+                  className={`border-b border-slate-100 text-slate-700 print:border-slate-200 ${
+                    index % 2 === 0 ? "bg-white" : "bg-slate-50/50 print:bg-slate-50"
+                  }`}
+                >
+                  <td className="px-2 py-1.5 font-semibold text-slate-900">{item.description}</td>
+                  <td className="px-2 py-1.5 text-center">{item.quantity}</td>
+                  <td className="px-2 py-1.5 text-center">{item.unit || messages.common.noData}</td>
+                  <td className="px-2 py-1.5 text-right">{formatter.format(item.unitPriceInCents / 100)}</td>
+                  <td className="px-2 py-1.5 text-right font-semibold text-slate-900">{formatter.format(item.totalInCents / 100)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        <div className="mt-8 ml-auto w-full max-w-md space-y-3 rounded-2xl bg-slate-50 p-5">
-          <div className="flex items-center justify-between text-sm text-slate-600">
-            <span>{messages.quotations.subtotal}</span>
-            <span>{formatter.format(quotation.subtotalInCents / 100)}</span>
+        {/* Totals */}
+        <div className="mt-3 ml-auto w-full max-w-md space-y-1.5 rounded-lg bg-slate-50 p-3 border border-slate-100 print:rounded-none print:border print:border-slate-300">
+          <div className="flex items-center justify-between text-[11px] text-slate-600">
+            <span className="font-medium">{messages.quotations.subtotal}</span>
+            <span className="font-medium">{formatter.format(quotation.subtotalInCents / 100)}</span>
           </div>
-          <div className="flex items-center justify-between text-sm text-slate-600">
-            <span>{messages.quotations.discount}</span>
-            <span>{formatter.format(quotation.discountInCents / 100)}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm text-slate-600">
-            <span>{messages.quotations.taxAmount}{quotation.taxEnabled ? ` (${quotation.taxRate}%)` : ""}</span>
-            <span>{formatter.format(quotation.taxInCents / 100)}</span>
-          </div>
+          {quotation.discountInCents > 0 && (
+            <div className="flex items-center justify-between text-[11px] text-slate-600">
+              <span className="font-medium">{messages.quotations.discount}</span>
+              <span className="font-medium text-red-600">- {formatter.format(quotation.discountInCents / 100)}</span>
+            </div>
+          )}
+          {quotation.taxEnabled && (
+            <div className="flex items-center justify-between text-[11px] text-slate-600">
+              <span className="font-medium">
+                {messages.quotations.taxAmount} ({quotation.taxRate}%)
+              </span>
+              <span className="font-medium">{formatter.format(quotation.taxInCents / 100)}</span>
+            </div>
+          )}
           <div className="h-px bg-slate-200" />
-          <div className="flex items-center justify-between text-base font-semibold text-slate-950">
-            <span>{messages.quotations.total}</span>
-            <span>{formatter.format(quotation.totalInCents / 100)}</span>
+          <div className="flex items-center justify-between text-sm font-bold text-slate-950 pt-0.5">
+            <span className="uppercase tracking-wider">{messages.quotations.total}</span>
+            <span className="text-blue-600">{formatter.format(quotation.totalInCents / 100)} ฿</span>
           </div>
+        </div>
+
+        {/* Signature area - print only, no page break */}
+        <div className="mt-4 border-t-2 border-slate-300 pt-3 print:block hidden">
+          <p className="text-center text-[9px] font-bold text-slate-800 uppercase tracking-wider mb-2">
+            ลงชื่อผู้รับผิดชอบ
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center">
+              <p className="text-[8px] font-bold text-slate-700 mb-6 uppercase tracking-wider">ผู้จัดทำเอกสาร</p>
+              <div className="border-b border-slate-400 mb-1 mx-auto" style={{width: "80%"}}></div>
+              <p className="text-[7px] text-slate-500">วันที่: ...... / ...... / ............</p>
+              <p className="text-[7px] text-slate-400 mt-0.5">ชื่อ-นามสกุล: ....................................</p>
+              <p className="text-[7px] text-slate-400">ตำแหน่ง: ....................................</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[8px] font-bold text-slate-700 mb-6 uppercase tracking-wider">ผู้อนุมัติ</p>
+              <div className="border-b border-slate-400 mb-1 mx-auto" style={{width: "80%"}}></div>
+              <p className="text-[7px] text-slate-500">วันที่: ...... / ...... / ............</p>
+              <p className="text-[7px] text-slate-400 mt-0.5">ชื่อ-นามสกุล: ....................................</p>
+              <p className="text-[7px] text-slate-400">ตำแหน่ง: ....................................</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer note - print only */}
+        <div className="mt-3 border-t border-slate-200 pt-3 print:block hidden">
+          <p className="text-[7px] text-slate-400 text-center leading-relaxed">
+            เอกสารนี้สร้างจากระบบ {organization.name} • เลขที่เอกสาร: {quotation.quotationNumber} • 
+            วันที่พิมพ์: {new Date().toLocaleDateString(validLocale === "th" ? "th-TH" : "en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </p>
         </div>
       </article>
     </div>

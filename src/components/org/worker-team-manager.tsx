@@ -32,6 +32,9 @@ type Team = {
   memberCount: number;
   workLogCount: number;
   createdAt: string;
+  estimatedCost: number;
+  actualCost: number;
+  actualHours: number;
   members: TeamMember[];
 };
 
@@ -84,6 +87,23 @@ type Props = {
   tasks: TaskOption[];
   assignments: WorkerAssignment[];
   canManage: boolean;
+  costSummary: {
+    totalEstimatedCostInCents: number;
+    totalActualCostInCents: number;
+    totalActualHours: number;
+    activeWorkLogCount: number;
+  };
+  actualCostByProject: Array<{
+    projectId: string;
+    costInCents: number;
+    hours: number;
+  }>;
+  actualCostByWorker: Array<{
+    userId: string;
+    name: string;
+    costInCents: number;
+    hours: number;
+  }>;
   copy: {
     common: Record<string, string>;
     workerTeam: Record<string, string>;
@@ -188,6 +208,9 @@ export function WorkerTeamManager({
   tasks,
   assignments,
   canManage,
+  costSummary,
+  actualCostByProject: _actualCostByProject,
+  actualCostByWorker: _actualCostByWorker,
 }: Props) {
   const router = useRouter();
   const [teamForm, setTeamForm] = useState<TeamForm>(emptyTeamForm);
@@ -196,6 +219,7 @@ export function WorkerTeamManager({
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL");
   const [projectFilter, setProjectFilter] = useState("ALL");
+  const [assignmentStatusFilter, setAssignmentStatusFilter] = useState<"ALL" | "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED">("ALL");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -229,9 +253,11 @@ export function WorkerTeamManager({
 
   const filteredAssignments = useMemo(() => {
     return assignments.filter((assignment) => {
-      return projectFilter === "ALL" || assignment.project.id === projectFilter;
+      const matchesProject = projectFilter === "ALL" || assignment.project.id === projectFilter;
+      const matchesStatus = assignmentStatusFilter === "ALL" || assignment.status === assignmentStatusFilter;
+      return matchesProject && matchesStatus;
     });
-  }, [assignments, projectFilter]);
+  }, [assignments, projectFilter, assignmentStatusFilter]);
 
   const assignmentCost = filteredAssignments.reduce(
     (sum, assignment) => sum + assignment.estimatedCostInCents,
@@ -459,7 +485,7 @@ export function WorkerTeamManager({
       {error ? <div className="rounded-xl border border-[var(--error)]/30 bg-[var(--error)]/10 px-4 py-3 text-sm text-[var(--error)]">{error}</div> : null}
       {success ? <div className="rounded-xl border border-[var(--success)]/30 bg-[var(--success)]/10 px-4 py-3 text-sm text-[var(--success)]">{success}</div> : null}
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className={panelClassName}>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">{t(copy, "teams", "Teams")}</p>
           <p className="mt-3 text-3xl font-medium text-[var(--foreground)]">{teams.length}</p>
@@ -475,6 +501,22 @@ export function WorkerTeamManager({
         <div className={panelClassName}>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">{t(copy, "plannedCost", "Planned labor cost")}</p>
           <p className="mt-3 text-2xl font-medium text-[var(--foreground)]">{formatMoney(assignmentCost)}</p>
+        </div>
+        <div className={panelClassName}>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--success)]">Actual labor cost</p>
+          <p className="mt-3 text-2xl font-medium text-[var(--success)]">{formatMoney(costSummary.totalActualCostInCents)}</p>
+        </div>
+        <div className={panelClassName}>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-cyan)]">Actual hours</p>
+          <p className="mt-3 text-2xl font-medium text-[var(--accent-cyan)]">{costSummary.totalActualHours.toFixed(1)}h</p>
+        </div>
+        <div className={panelClassName}>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Approved logs</p>
+          <p className="mt-3 text-3xl font-medium text-[var(--foreground)]">{costSummary.activeWorkLogCount}</p>
+        </div>
+        <div className={panelClassName}>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Est. vs Actual</p>
+          <p className="mt-3 text-lg font-medium text-[var(--foreground)]">{formatMoney(costSummary.totalEstimatedCostInCents)} / {formatMoney(costSummary.totalActualCostInCents)}</p>
         </div>
       </div>
 
@@ -755,6 +797,108 @@ export function WorkerTeamManager({
                       <p className="mt-2 text-xs text-[var(--muted)]">
                         {t(copy, "memberCount", "members")}: {team.memberCount} · {t(copy, "workLogs", "Work logs")}: {team.workLogCount}
                       </p>
+                      <div className="mt-2 flex gap-4 text-xs">
+                        <span className="text-[var(--muted-soft)]">Est: {formatMoney(team.estimatedCost)}</span>
+                        <span className="text-[var(--success)] font-medium">Actual: {formatMoney(team.actualCost)}</span>
+                        <span className="text-[var(--accent-cyan)]">Hours: {team.actualHours.toFixed(1)}h</span>
+                      </div>
+
+                      {(() => {
+                        const teamAssignments = assignments.filter(
+                          (a) => a.workerTeam.id === team.id,
+                        );
+                        const activeAssignments = teamAssignments.filter(
+                          (a) => ["PLANNED", "ACTIVE"].includes(a.status),
+                        );
+                        const completedAssignments = teamAssignments.filter(
+                          (a) => a.status === "COMPLETED",
+                        );
+                        const cancelledAssignments = teamAssignments.filter(
+                          (a) => a.status === "CANCELLED",
+                        );
+
+                        return (
+                          <div className="mt-4">
+                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                              {t(copy, "assignments", "Assignments")} ({teamAssignments.length})
+                            </p>
+                            {teamAssignments.length === 0 ? (
+                              <p className="mt-2 text-xs text-[var(--muted-soft)]">
+                                {t(copy, "noAssignments", "No assignments yet")}
+                              </p>
+                            ) : (
+                              <div className="mt-2 grid gap-2">
+                                {teamAssignments.map((assignment) => (
+                                  <div
+                                    key={assignment.id}
+                                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3"
+                                  >
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="min-w-0">
+                                        <p className="truncate text-sm font-medium text-[var(--foreground)]">
+                                          {assignment.title}
+                                        </p>
+                                        {assignment.task ? (
+                                          <p className="mt-0.5 truncate text-xs text-[var(--muted)]">
+                                            → {assignment.task.title}
+                                          </p>
+                                        ) : null}
+                                        <p className="mt-1 text-xs text-[var(--muted-soft)]">
+                                          {assignment.project.code
+                                            ? `${assignment.project.code} — ${assignment.project.name}`
+                                            : assignment.project.name}
+                                        </p>
+                                        <p className="mt-1 text-xs text-[var(--muted)]">
+                                          {formatDate(assignment.startDate)} — {formatDate(assignment.endDate)}
+                                          {" · "}
+                                          {assignment.plannedDays} {t(copy, "days", "days")}
+                                        </p>
+                                        <div className="mt-1 flex gap-3 text-xs">
+                                          <span className="text-[var(--muted-soft)]">
+                                            {t(copy, "estimatedCost", "Estimated cost")}: {formatMoney(assignment.estimatedCostInCents)}
+                                          </span>
+                                          {assignment.worker ? (
+                                            <span className="text-[var(--muted-soft)]">
+                                              {assignment.worker.name}
+                                            </span>
+                                          ) : (
+                                            <span className="text-[var(--muted-soft)]">
+                                              {t(copy, "wholeTeam", "Whole team")}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <StatusBadge
+                                        label={assignment.status}
+                                        tone={getStatusTone(assignment.status)}
+                                      />
+                                    </div>
+                                    {canManage ? (
+                                      <div className="mt-2 flex items-center gap-2">
+                                        <select
+                                          value={assignment.status}
+                                          onChange={(event) =>
+                                            updateAssignmentStatus(
+                                              assignment.id,
+                                              event.target.value as WorkerAssignmentStatus,
+                                            )
+                                          }
+                                          className={`${inputClassName} !min-w-0 !text-xs`}
+                                        >
+                                          <option value="PLANNED">{t(copy, "planned", "Planned")}</option>
+                                          <option value="ACTIVE">{t(copy, "assignmentActive", "Active")}</option>
+                                          <option value="COMPLETED">{t(copy, "completed", "Completed")}</option>
+                                          <option value="CANCELLED">{t(copy, "cancelled", "Cancelled")}</option>
+                                        </select>
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
 
@@ -871,18 +1015,31 @@ export function WorkerTeamManager({
               {t(copy, "plannedHeadcount", "Planned headcount")}: {plannedHeadcount}
             </p>
           </div>
-          <select
-            value={projectFilter}
-            onChange={(event) => setProjectFilter(event.target.value)}
-            className={`${inputClassName} max-w-sm`}
-          >
-            <option value="ALL">{t(copy, "allProjects", "All projects")}</option>
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.code ? `${project.code} - ${project.name}` : project.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex gap-3">
+            <select
+              value={assignmentStatusFilter}
+              onChange={(event) => setAssignmentStatusFilter(event.target.value as typeof assignmentStatusFilter)}
+              className={`${inputClassName} max-w-[180px]`}
+            >
+              <option value="ALL">{t(copy, "allStatuses", "All statuses")}</option>
+              <option value="PLANNED">{t(copy, "planned", "Planned")}</option>
+              <option value="ACTIVE">{t(copy, "assignmentActive", "Active")}</option>
+              <option value="COMPLETED">{t(copy, "completed", "Completed")}</option>
+              <option value="CANCELLED">{t(copy, "cancelled", "Cancelled")}</option>
+            </select>
+            <select
+              value={projectFilter}
+              onChange={(event) => setProjectFilter(event.target.value)}
+              className={`${inputClassName} max-w-sm`}
+            >
+              <option value="ALL">{t(copy, "allProjects", "All projects")}</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.code ? `${project.code} - ${project.name}` : project.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="mt-5 overflow-x-auto">
