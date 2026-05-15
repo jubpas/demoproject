@@ -12,6 +12,28 @@ type Props = {
   params: Promise<{ locale: string; orgSlug: string; customerId: string }>;
 };
 
+type RelatedSurveyAppointment = {
+  id: string;
+  title: string;
+  status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "RESCHEDULED";
+  scheduledStart: Date;
+  _count?: {
+    quotations: number;
+  };
+};
+
+type RelatedQuotation = {
+  id: string;
+  quotationNumber: string;
+  status: "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED" | "EXPIRED";
+};
+
+type RelatedProject = {
+  id: string;
+  name: string;
+  status: "PLANNING" | "ACTIVE" | "ON_HOLD" | "COMPLETED" | "CANCELLED";
+};
+
 export default async function CustomerDetailPage({ params }: Props) {
   const { locale, orgSlug, customerId } = await params;
   const validLocale = await requireLocale(locale);
@@ -104,19 +126,19 @@ export default async function CustomerDetailPage({ params }: Props) {
       <div className="grid gap-6 xl:grid-cols-3">
         <DataPanel title={messages.customers.relatedSurveysTitle}>
           <div className="space-y-3">
-{customer.surveyAppointments.length === 0 ? <p className="text-sm text-slate-500">{messages.customers.noRelatedSurveys}</p> : customer.surveyAppointments.map((item) => <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="flex items-start justify-between gap-3"><div className="space-y-1"><p className="font-medium text-slate-950">{item.title}</p>{item._count && item._count.quotations > 0 && <span className="inline-block rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">{item._count.quotations} {messages.quotations.quotations}</span>}</div><StatusBadge label={appointmentStatusMap[item.status].label} tone={appointmentStatusMap[item.status].tone} /></div><p className="mt-2 text-xs text-slate-500">{item.scheduledStart.toISOString().slice(0, 16).replace("T", " ")}</p></div>)}
+{customer.surveyAppointments.length === 0 ? <p className="text-sm text-slate-500">{messages.customers.noRelatedSurveys}</p> : customer.surveyAppointments.map((item: RelatedSurveyAppointment) => <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="flex items-start justify-between gap-3"><div className="space-y-1"><p className="font-medium text-slate-950">{item.title}</p>{item._count && item._count.quotations > 0 && <span className="inline-block rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">{item._count.quotations} {messages.quotations.quotations}</span>}</div><StatusBadge label={appointmentStatusMap[item.status].label} tone={appointmentStatusMap[item.status].tone} /></div><p className="mt-2 text-xs text-slate-500">{item.scheduledStart.toISOString().slice(0, 16).replace("T", " ")}</p></div>)}
           </div>
         </DataPanel>
 
         <DataPanel title={messages.customers.relatedQuotationsTitle}>
           <div className="space-y-3">
-            {customer.quotations.length === 0 ? <p className="text-sm text-slate-500">{messages.customers.noRelatedQuotations}</p> : customer.quotations.map((item) => <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="flex items-start justify-between gap-3"><p className="font-medium text-slate-950">{item.quotationNumber}</p><StatusBadge label={quotationStatusMap[item.status].label} tone={quotationStatusMap[item.status].tone} /></div><Link href={`/${validLocale}/org/${orgSlug}/quotations/${item.id}`} className="mt-3 inline-flex rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-white">{messages.common.view}</Link></div>)}
+            {customer.quotations.length === 0 ? <p className="text-sm text-slate-500">{messages.customers.noRelatedQuotations}</p> : customer.quotations.map((item: RelatedQuotation) => <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="flex items-start justify-between gap-3"><p className="font-medium text-slate-950">{item.quotationNumber}</p><StatusBadge label={quotationStatusMap[item.status].label} tone={quotationStatusMap[item.status].tone} /></div><Link href={`/${validLocale}/org/${orgSlug}/quotations/${item.id}`} className="mt-3 inline-flex rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-white">{messages.common.view}</Link></div>)}
           </div>
         </DataPanel>
 
         <DataPanel title={messages.customers.relatedProjectsTitle}>
           <div className="space-y-3">
-            {customer.projects.length === 0 ? <p className="text-sm text-slate-500">{messages.customers.noRelatedProjects}</p> : customer.projects.map((item) => <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="flex items-start justify-between gap-3"><p className="font-medium text-slate-950">{item.name}</p><StatusBadge label={projectStatusMap[item.status].label} tone={projectStatusMap[item.status].tone} /></div><Link href={`/${validLocale}/org/${orgSlug}/projects/${item.id}`} className="mt-3 inline-flex rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-white">{messages.common.view}</Link></div>)}
+            {customer.projects.length === 0 ? <p className="text-sm text-slate-500">{messages.customers.noRelatedProjects}</p> : customer.projects.map((item: RelatedProject) => <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="flex items-start justify-between gap-3"><p className="font-medium text-slate-950">{item.name}</p><StatusBadge label={projectStatusMap[item.status].label} tone={projectStatusMap[item.status].tone} /></div><Link href={`/${validLocale}/org/${orgSlug}/projects/${item.id}`} className="mt-3 inline-flex rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-white">{messages.common.view}</Link></div>)}
           </div>
         </DataPanel>
       </div>
