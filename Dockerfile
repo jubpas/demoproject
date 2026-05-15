@@ -35,9 +35,11 @@ ENV HOSTNAME="0.0.0.0"
 
 COPY --from=builder /app/.next ./.next
 COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 COPY --from=builder /app/package.json ./package.json
 
 EXPOSE 3000
 ENV HEALTH_CHECK_PATH=/api/health
 
-CMD ["node", "server.js"]
+CMD ["npm", "start"]
