@@ -11,6 +11,21 @@ type Props = {
   params: Promise<{ locale: string; organizationId: string }>;
 };
 
+type AdminOrganizationMember = {
+  id: string;
+  role: string;
+  user: {
+    name: string | null;
+    email: string;
+  };
+};
+
+type AdminSubscriptionPlanOption = {
+  id: string;
+  name: string;
+  billingInterval: string;
+};
+
 export default async function AdminOrganizationDetailPage({ params }: Props) {
   const { locale, organizationId } = await params;
   const validLocale = await requireLocale(locale);
@@ -49,7 +64,7 @@ export default async function AdminOrganizationDetailPage({ params }: Props) {
   }
 
   const currentSubscription = seatSummary.subscription;
-  const owner = organization.memberships.find((item) => item.role === "OWNER");
+  const owner = organization.memberships.find((item: AdminOrganizationMember) => item.role === "OWNER");
 
   return (
     <div className="space-y-6">
@@ -97,7 +112,7 @@ export default async function AdminOrganizationDetailPage({ params }: Props) {
               <label className="block space-y-2 md:col-span-2">
                 <span className="text-sm font-medium text-slate-700">{messages.admin.subscriptionPlan}</span>
                 <select name="planId" defaultValue={currentSubscription?.planId || plans[0]?.id} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
-                  {plans.map((plan) => (
+                  {plans.map((plan: AdminSubscriptionPlanOption) => (
                     <option key={plan.id} value={plan.id}>{`${plan.name} (${plan.billingInterval})`}</option>
                   ))}
                 </select>
@@ -154,7 +169,7 @@ export default async function AdminOrganizationDetailPage({ params }: Props) {
 
         <DataPanel title={messages.admin.membersSnapshotTitle}>
           <div className="space-y-3">
-            {organization.memberships.map((item) => (
+            {organization.memberships.map((item: AdminOrganizationMember) => (
               <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <p className="font-medium text-slate-950">{item.user.name || item.user.email}</p>
                 <p className="mt-1 text-sm text-slate-500">{item.user.email}</p>
