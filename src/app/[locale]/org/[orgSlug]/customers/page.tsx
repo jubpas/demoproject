@@ -8,6 +8,22 @@ type Props = {
   params: Promise<{ locale: string; orgSlug: string }>;
 };
 
+type CustomerListRow = {
+  id: string;
+  name: string;
+  companyName: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  note: string | null;
+  createdAt: Date;
+  _count?: {
+    quotations: number;
+    surveyAppointments: number;
+    projects: number;
+  };
+};
+
 export default async function CustomersPage({ params }: Props) {
   const { locale, orgSlug } = await params;
   const validLocale = await requireLocale(locale);
@@ -31,7 +47,7 @@ export default async function CustomersPage({ params }: Props) {
     <CustomerManager
       locale={validLocale}
       orgSlug={orgSlug}
-      customers={customers.map((customer) => ({
+      customers={customers.map((customer: CustomerListRow) => ({
         id: customer.id,
         name: customer.name,
         companyName: customer.companyName,
