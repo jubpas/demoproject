@@ -9,6 +9,24 @@ type Props = {
   params: Promise<{ locale: string }>;
 };
 
+type AdminOrganizationListItem = {
+  id: string;
+  name: string;
+  slug: string;
+  archivedAt: Date | null;
+  memberships: Array<{
+    user: {
+      email: string;
+      name: string | null;
+    };
+  }>;
+  subscriptions: Array<{
+    plan: {
+      name: string;
+    };
+  }>;
+};
+
 export default async function AdminOrganizationsPage({ params }: Props) {
   const { locale } = await params;
   const validLocale = await requireLocale(locale);
@@ -54,7 +72,7 @@ export default async function AdminOrganizationsPage({ params }: Props) {
               </tr>
             </thead>
             <tbody>
-              {organizations.map((organization) => {
+              {organizations.map((organization: AdminOrganizationListItem) => {
                 const owner = organization.memberships[0]?.user;
                 const subscription = organization.subscriptions[0];
 
