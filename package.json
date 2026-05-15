@@ -36,7 +36,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "jsdom": "^29.1.0",
-    "opencode-windows-x64": "^1.14.29",
     "prisma": "^7.8.0",
     "server-only": "^0.0.1",
     "tailwindcss": "^4",
