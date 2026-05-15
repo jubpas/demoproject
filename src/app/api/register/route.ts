@@ -113,7 +113,7 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ success: true }, { status: 201 });
+    return NextResponse.json({ success: true, redirectTo: `/${locale}/onboarding/organization-choice` }, { status: 201 });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return errorResponse(messages.duplicateEmail, 409);

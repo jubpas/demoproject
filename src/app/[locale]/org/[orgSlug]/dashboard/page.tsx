@@ -47,6 +47,13 @@ export default async function DashboardPage({ params }: Props) {
     lastMonthExpense,
     lastMonthProjects,
     lastMonthCustomers,
+    // Worker metrics
+    _activeWorkerTeamsCount,
+    todayWorkLogs,
+    thisMonthWorkLogs,
+    _thisMonthActiveWorkers,
+    thisMonthTotalMinutes,
+    recentWorkLogs,
   ] = await Promise.all([
     prisma.project.count({ where: { organizationId: organization.id } }),
     prisma.customer.count({ where: { organizationId: organization.id } }),
@@ -182,11 +189,72 @@ export default async function DashboardPage({ params }: Props) {
         createdAt: { gte: lastMonthStart, lte: lastMonthEnd },
       },
     }),
+    // Worker metrics
+    prisma.workerTeam.count({
+      where: { organizationId: organization.id, isActive: true },
+    }),
+    prisma.workLog.count({
+      where: {
+        organizationId: organization.id,
+        date: { gte: new Date(today.getFullYear(), today.getMonth(), today.getDate()) },
+      },
+    }),
+    prisma.workLog.count({
+      where: {
+        organizationId: organization.id,
+        date: { gte: thisMonthStart },
+      },
+    }),
+    prisma.workLog.groupBy({
+      by: ["workerUserId"],
+      where: {
+        organizationId: organization.id,
+        date: { gte: thisMonthStart },
+      },
+      _count: { id: true },
+    }),
+    prisma.workLog.aggregate({
+      where: {
+        organizationId: organization.id,
+        date: { gte: thisMonthStart },
+      },
+      _sum: { durationMinutes: true },
+    }),
+    prisma.workLog.findMany({
+      where: {
+        organizationId: organization.id,
+        date: { gte: new Date(today.getFullYear(), today.getMonth(), today.getDate()) },
+      },
+      include: {
+        worker: { select: { id: true, name: true, email: true } },
+        workerTeam: { select: { id: true, name: true } },
+        project: { select: { id: true, name: true } },
+      },
+      orderBy: { date: "desc" },
+      take: 5,
+    }),
   ]);
 
-  // Serialize audit logs for client component (Date โ’ ISO string)
+  // Serialize audit logs for client component (Date → ISO string)
   const serializedAuditLogs = recentAuditLogs.map((log) => ({
     ...log,
+    createdAt: log.createdAt.toISOString(),
+  }));
+
+  // Worker metrics calculations
+  const activeWorkersToday = todayWorkLogs;
+  const totalWorkLogsThisMonth = thisMonthWorkLogs;
+  const activeWorkersThisMonth = _thisMonthActiveWorkers.length;
+  const totalLaborMinutes = thisMonthTotalMinutes._sum.durationMinutes ?? 0;
+  const totalLaborHours = Math.round(totalLaborMinutes / 60);
+  const avgHoursPerDay = totalWorkLogsThisMonth > 0 ? Math.round(totalLaborHours / 30) : 0;
+
+  // Serialize work logs for client component
+  const serializedWorkLogs = recentWorkLogs.map((log) => ({
+    ...log,
+    date: log.date.toISOString(),
+    checkIn: log.checkIn?.toISOString() ?? null,
+    checkOut: log.checkOut?.toISOString() ?? null,
     createdAt: log.createdAt.toISOString(),
   }));
 
@@ -318,6 +386,65 @@ export default async function DashboardPage({ params }: Props) {
         <MetricCard label={messages.dashboard.overBudgetProjects} value={overBudgetProjectCount.toString()} tone={overBudgetProjectCount > 0 ? "red" : "slate"} />
       </section>
 
+      {/* Worker Metrics Section */}
+      <section className="grid gap-4 md:grid-cols-4">
+        <MetricCard
+          label={messages.dashboard.activeWorkersToday}
+          value={activeWorkersToday.toString()}
+          tone="blue"
+        />
+        <MetricCard
+          label={messages.dashboard.workLogsThisMonth}
+          value={totalWorkLogsThisMonth.toString()}
+          tone="green"
+        />
+        <MetricCard
+          label={messages.dashboard.totalLaborHours}
+          value={`${totalLaborHours}h`}
+          tone="slate"
+        />
+        <MetricCard
+          label={messages.dashboard.avgHoursPerDay}
+          value={`${avgHoursPerDay}h`}
+          tone="slate"
+        />
+      </section>
+
+      {/* Recent Work Logs Activity */}
+      {serializedWorkLogs.length > 0 && (
+        <DataPanel
+          title={messages.dashboard.recentWorkLogs}
+          description={messages.dashboard.recentWorkLogsDescription}
+        >
+          <div className="space-y-3">
+            {serializedWorkLogs.map((log) => (
+              <div
+                key={log.id}
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-slate-950">{log.worker.name || log.worker.email}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {log.workerTeam.name}
+                      {log.project ? ` | ${log.project.name}` : ""}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium text-slate-700">
+                      {formatDuration(log.durationMinutes)}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {new Date(log.date).toLocaleDateString("th-TH", { month: "short", day: "numeric" })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DataPanel>
+      )}
+
       <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <DataPanel
           title={messages.dashboard.quickActions}
@@ -392,10 +519,9 @@ export default async function DashboardPage({ params }: Props) {
                         <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
                           <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`text-sm font-semibold ${labelColor}`}>{project.planned > 0 ? `${project.percentage.toFixed(0)}%` : "0%"}</p>
-                        <p className={`mt-0.5 text-[11px] font-medium ${labelColor}`}>{statusLabel}</p>
+                        <p className={`mt-1 text-xs font-medium ${labelColor}`}>
+                          {statusLabel} {Math.round(pct)}%
+                        </p>
                       </div>
                     </div>
                   </Link>
@@ -404,46 +530,43 @@ export default async function DashboardPage({ params }: Props) {
             </div>
           )}
         </DataPanel>
+      </section>
 
-        <DataPanel title={messages.dashboard.recentActivity} description={messages.dashboard.recentActivityDescription}>
-          <RecentActivity
-            initialLogs={serializedAuditLogs}
-            orgSlug={orgSlug}
-            noData={messages.dashboard.noRecentActivity}
-          />
-        </DataPanel>
-
+      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <DataPanel title={messages.dashboard.workloadTitle} description={messages.dashboard.workloadDescription}>
           <div className="space-y-3">
-            {recentTasks.length === 0 ? (
-              <p className="text-sm leading-7 text-slate-500">{messages.dashboard.noRecentTasks}</p>
-            ) : (
-              recentTasks.map((task) => (
-                <Link key={task.id} href={`/${validLocale}/org/${orgSlug}/projects/${task.project.id}/tasks`} className="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 transition hover:border-blue-200 hover:bg-blue-50">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-slate-950">{task.title}</p>
-                      <p className="mt-1 text-xs text-slate-500">{task.project.name}{dashboardUi.separator}{task.assignedTo?.name || task.assignedTo?.email || messages.projects.noAssignee}</p>
-                    </div>
-                    <span className="text-xs font-semibold text-slate-500">{task.progressPercent}%</span>
-                  </div>
-                </Link>
-              ))
-            )}
-          </div>
-          <div className="mt-5 border-t border-slate-200 pt-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{messages.dashboard.upcomingAppointments}</p>
-            <div className="mt-3 space-y-2">
-              {upcomingAppointments.length === 0 ? (
-                <p className="text-sm text-slate-500">{messages.dashboard.noUpcomingAppointments}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{messages.dashboard.recentTasks}</p>
+            <div className="space-y-2">
+              {recentTasks.length === 0 ? (
+                <p className="text-sm text-slate-500">{messages.dashboard.noRecentTasks}</p>
               ) : (
-                upcomingAppointments.map((appointment) => (
-                  <div key={appointment.id} className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-700 ring-1 ring-slate-200">
-                    <p className="font-medium text-slate-950">{appointment.title}</p>
-                    <p className="mt-1 text-xs text-slate-500">{appointment.project?.name || messages.transactions.noProject}{dashboardUi.separator}{appointment.scheduledStart.toISOString().slice(0, 16).replace("T", " ")}</p>
-                  </div>
+                recentTasks.map((task) => (
+                  <Link key={task.id} href={`/${validLocale}/org/${orgSlug}/projects/${task.project.id}/tasks`} className="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 transition hover:border-blue-200 hover:bg-blue-50">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-slate-950">{task.title}</p>
+                        <p className="mt-1 text-xs text-slate-500">{task.project.name}{dashboardUi.separator}{task.assignedTo?.name || task.assignedTo?.email || messages.projects.noAssignee}</p>
+                      </div>
+                      <span className="text-xs font-semibold text-slate-500">{task.progressPercent}%</span>
+                    </div>
+                  </Link>
                 ))
               )}
+            </div>
+            <div className="mt-5 border-t border-slate-200 pt-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{messages.dashboard.upcomingAppointments}</p>
+              <div className="mt-3 space-y-2">
+                {upcomingAppointments.length === 0 ? (
+                  <p className="text-sm text-slate-500">{messages.dashboard.noUpcomingAppointments}</p>
+                ) : (
+                  upcomingAppointments.map((appointment) => (
+                    <div key={appointment.id} className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-700 ring-1 ring-slate-200">
+                      <p className="font-medium text-slate-950">{appointment.title}</p>
+                      <p className="mt-1 text-xs text-slate-500">{appointment.project?.name || messages.transactions.noProject}{dashboardUi.separator}{appointment.scheduledStart.toISOString().slice(0, 16).replace("T", " ")}</p>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </DataPanel>
@@ -477,8 +600,29 @@ export default async function DashboardPage({ params }: Props) {
           )}
         </DataPanel>
       </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <DataPanel title={messages.dashboard.recentActivity} description={messages.dashboard.recentActivityDescription}>
+          <RecentActivity
+            initialLogs={serializedAuditLogs}
+            orgSlug={orgSlug}
+            noData={messages.dashboard.noRecentActivity}
+          />
+        </DataPanel>
+      </section>
     </div>
   );
 }
 
-
+function formatDuration(minutes: number | null | undefined): string {
+  if (!minutes) return "0m";
+  const hours = Math.floor(minutes / 60);
+  const mins = Math.round(minutes % 60);
+  if (hours > 0 && mins > 0) {
+    return `${hours}h ${mins}m`;
+  }
+  if (hours > 0) {
+    return `${hours}h`;
+  }
+  return `${mins}m`;
+}

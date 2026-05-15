@@ -207,6 +207,12 @@ export default async function ReportsPage({ params, searchParams }: Props) {
             >
               {messages.dashboard.projects}
             </Link>
+            <Link
+              href={`/${validLocale}/org/${orgSlug}/reports/labor-cost`}
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              {messages.reports.laborCostTitle}
+            </Link>
           </>
         }
       />

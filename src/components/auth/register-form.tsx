@@ -105,7 +105,8 @@ export function RegisterForm({ locale, callbackUrl, copy }: Props) {
         return;
       }
 
-      router.push(result?.url ?? callbackUrl ?? `/${locale}/onboarding/create-organization`);
+      const redirectTo = data.redirectTo ?? `/${locale}/onboarding/organization-choice`;
+      router.push(redirectTo);
       router.refresh();
     } catch {
       setError(copy.auth.genericError);
