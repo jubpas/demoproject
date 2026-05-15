@@ -12,7 +12,7 @@ const globalForPrisma = globalThis as unknown as {
 function createPrismaClient(): PrismaClient {
   const dbUrl = process.env.DATABASE_URL?.replace(/^"|"$/g, "");
 
-  if (dbUrl?.startsWith("postgresql://") || dbUrl?.startsWith("postgres://")) {
+  if (dbUrl?.startsWith("postgresql://") || dbUrl?.startsWith("postgres://") || dbUrl?.startsWith("prisma+postgres://")) {
     return new PrismaClient({
       adapter: new PrismaPg({ connectionString: dbUrl }),
     });
