@@ -2,18 +2,20 @@
 
 FROM node:22.12-alpine AS base
 WORKDIR /app
-ENV NODE_ENV=production
 ENV NPM_CONFIG_CACHE=/tmp/npm-cache
 ENV npm_config_cache=/tmp/npm-cache
 
-# Install dependencies only when needed
+# Install all dependencies for the build, including devDependencies.
 FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts || npm install --ignore-scripts && npm cache clean --force
+RUN npm ci --ignore-scripts && npm cache clean --force
 
-# Production dependencies
-RUN npm install --omit=dev --ignore-scripts
+# Install only production dependencies for the runtime image.
+FROM base AS prod-deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 # Builder stage
 FROM base AS builder
@@ -26,12 +28,13 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
+ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
+COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 
 EXPOSE 3000
