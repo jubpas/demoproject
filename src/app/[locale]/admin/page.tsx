@@ -11,6 +11,31 @@ type Props = {
   params: Promise<{ locale: string }>;
 };
 
+type AdminDashboardOrganization = {
+  id: string;
+  name: string;
+  slug: string;
+  archivedAt: Date | null;
+  memberships: Array<{
+    user: {
+      email: string;
+      name: string | null;
+    };
+  }>;
+  subscriptions: Array<{
+    plan: {
+      name: string;
+    };
+  }>;
+};
+
+type AdminDashboardPlan = {
+  id: string;
+  name: string;
+  billingInterval: string;
+  seatLimit: number | null;
+};
+
 export default async function AdminDashboardPage({ params }: Props) {
   const { locale } = await params;
   const validLocale = await requireLocale(locale);
@@ -101,7 +126,7 @@ export default async function AdminDashboardPage({ params }: Props) {
 
         <DataPanel title={messages.admin.latestOrganizationsTitle} description={messages.admin.latestOrganizationsSubtitle}>
           <div className="space-y-3">
-            {organizations.map((organization) => {
+            {organizations.map((organization: AdminDashboardOrganization) => {
               const owner = organization.memberships[0]?.user;
               const subscription = organization.subscriptions[0];
 
@@ -132,7 +157,7 @@ export default async function AdminDashboardPage({ params }: Props) {
 
       <DataPanel title={messages.admin.availablePlansTitle} description={messages.admin.availablePlansSubtitle}>
         <div className="grid gap-4 md:grid-cols-3">
-          {plans.map((plan) => (
+          {plans.map((plan: AdminDashboardPlan) => (
             <div key={plan.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <p className="font-medium text-slate-950">{plan.name}</p>
               <p className="mt-2 text-sm text-slate-500">{plan.billingInterval}</p>
