@@ -2,6 +2,10 @@
   "name": "demoproject",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
