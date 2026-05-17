@@ -16,7 +16,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const results: Array<{ success: boolean; error?: string; workLog?: any }> = [];
+    interface BatchResult { success: boolean; error?: string; workLog?: unknown; }
+    const results: BatchResult[] = [];
     let successCount = 0;
     let errorCount = 0;
 
