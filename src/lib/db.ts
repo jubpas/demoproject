@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const prismaSchemaSignature = "worker-assignment-v1";
@@ -12,17 +11,20 @@ const globalForPrisma = globalThis as unknown as {
 function createPrismaClient(): PrismaClient {
   const dbUrl = process.env.DATABASE_URL?.replace(/^"|"$/g, "");
 
-  if (dbUrl?.startsWith("postgresql://") || dbUrl?.startsWith("postgres://") || dbUrl?.startsWith("prisma+postgres://")) {
+  if (!dbUrl) {
+    throw new Error("DATABASE_URL is required for the PostgreSQL Prisma schema.");
+  }
+
+  if (dbUrl.startsWith("postgresql://") || dbUrl.startsWith("postgres://")) {
     return new PrismaClient({
       adapter: new PrismaPg({ connectionString: dbUrl }),
     });
   }
 
-  return new PrismaClient({
-    adapter: new PrismaBetterSqlite3({
-      url: dbUrl ?? "file:./dev.db",
-    }),
-  });
+  throw new Error(
+    "DATABASE_URL must be a PostgreSQL TCP connection string starting with postgres:// or postgresql://. " +
+      "The current value is not compatible with @prisma/adapter-pg.",
+  );
 }
 
 export const prisma: PrismaClient =

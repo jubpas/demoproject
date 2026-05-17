@@ -12,7 +12,7 @@ This version has breaking changes - APIs, conventions, and file structure may al
 
 - Next.js App Router
 - Tailwind CSS v4
-- Prisma + SQLite
+- Prisma + PostgreSQL (Prisma Postgres / TCP connection string)
 - locale routes แบบ `/th/...` และ `/en/...`
 - organization-aware routes แบบ `/[locale]/org/[orgSlug]/*`
 - ระบบยืนยันตัวตนแบบ email + password
@@ -67,7 +67,7 @@ baseline ที่ทำเสร็จแล้วและต้องรั�
 ถ้าจะลงมือแก้ต่อ ให้ตรวจสอบและจัดการประเด็นเหล่านี้ก่อนหรือระหว่างทำงาน:
 - จำลอง Json Data Mockup เสมอ
 - มี code/doc drift หลายจุด โดยเฉพาะ route structure และ current scope
-- deploy production ยังมีความเสี่ยงจาก SQLite local file และการ track `dev.db`
+- database ใช้ PostgreSQL แล้ว — runtime `DATABASE_URL` ต้องเป็น `postgres://` หรือ `postgresql://` สำหรับ `@prisma/adapter-pg`; ห้าม fallback เป็น SQLite
 - forgot-password flow ต้องระวัง mock reset link หลุดไปใน production
 - super admin bootstrap ผ่าน `SUPER_ADMIN_EMAILS` ต้องระวังถ้ายังไม่มี email verification
 - runtime packages ต้องอยู่ใน `dependencies` ให้ถูกต้องเสมอ
@@ -85,6 +85,49 @@ baseline ที่ทำเสร็จแล้วและต้องรั�
   - authorization จริงต้องตรวจใน server components / route handlers / server-side helpers ไม่พึ่ง proxy อย่างเดียว
 - Tailwind ควรใช้สำหรับ layout และ form พื้นฐานแบบเรียบง่ายก่อน ยังไม่ต้องเพิ่ม UI library ถ้าไม่จำเป็น
 - ถ้าเพิ่ม dependency ใหม่ ต้องอธิบายเหตุผลสั้น ๆ และเช็กว่าเป็น `dependencies` หรือ `devDependencies` ให้ถูกต้อง
+
+## Database & Environment
+
+- **Local development**: PostgreSQL ผ่าน `.env.local` โดยใช้ TCP connection string (`postgres://` หรือ `postgresql://`)
+- **Production**: Railway + PostgreSQL
+- **Database**: PostgreSQL with Prisma ORM
+- **Migration**: `npx prisma migrate dev` / `npx prisma migrate deploy`
+- **Environment**: ใช้ `.env.local` สำหรับ local development และอย่า commit secret จริง
+- `.env.example` มี template สำหรับอ้างอิง
+
+## Testing
+
+- **Test framework**: Vitest
+- **Test files**: `__tests__/**/*.test.ts`, `__tests__/**/*.test.tsx`
+- **Test environment**: jsdom
+- **Coverage**: @vitest/coverage-v8
+- **Commands**:
+  - `npm run test` — รัน tests พร้อม watch mode
+  - `npm run test:run` — รัน tests แบบไม่ใช้ watch mode
+  - `npm run test:coverage` — รัน tests พร้อม coverage report
+
+## Deployment
+
+- **Platform**: Railway
+- **Config**: `railway/railway.json`, `nixpacks.toml`
+- **CI/CD**: `.github/workflows/ci.yml`, `.github/workflows/cd.yml`
+- **Dockerfile**: มีสำหรับ container builds
+- **Health check**: `/api/health`
+
+## CI/CD Pipeline
+
+- **GitHub Actions** สำหรับ lint, test, build checks
+- **Auto-deploy** ไป Railway เมื่อ push ไป main branch
+- **Pre-deploy**: `npx prisma migrate deploy`
+
+## Local Development Setup
+
+1. **ติดตั้ง dependencies**: `npm install`
+2. **ตั้งค่า environment**: คัดลอก `.env.example` เป็น `.env.local` แล้วเติมค่าให้ถูกต้อง
+3. **Generate Prisma client**: `npx prisma generate`
+4. **Run migrations**: `npx prisma migrate dev`
+5. **Start dev server**: `npm run dev`
+6. **Database URL**: ใช้ PostgreSQL TCP URL จาก `.env.local`; ถ้าเปลี่ยนค่า env ต้อง restart dev server
 
 ## UI And Design Rules
 
