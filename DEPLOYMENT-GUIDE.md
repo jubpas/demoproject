@@ -50,7 +50,7 @@
 | `DATABASE_URL` | URL จาก PostgreSQL instance | ที่คัดลอกจาก step 2 |
 | `NEXTAUTH_SECRET` | `openssl rand -base64 32` | Secret สำหรับ authentication |
 | `AUTH_SECRET` | เหมือน `NEXTAUTH_SECRET` | Secret สำหรับ next-auth |
-| `NEXTAUTH_URL` | `https://your-app-name.railway.app` | URL ของ app (เปลี่ยนตามชื่อจริง) |
+| `NEXTAUTH_URL` | `https://demoproject-production-cebc.up.railway.app` | URL ของ app (เปลี่ยนตามชื่อจริง) |
 
 **วิธี generate secret:**
 ```bash

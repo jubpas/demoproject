@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import prisma from "@/lib/db";
 import { DataPanel } from "@/components/dashboard/data-panel";
 import { PageHeader } from "@/components/dashboard/page-header";
